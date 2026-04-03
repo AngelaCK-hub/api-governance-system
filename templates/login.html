@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Governance — Sign In</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body class="login-page">
+
+    <!-- ── SPLIT SCREEN LAYOUT ───────────────────────────────── -->
+    <div class="login-split">
+
+        <!-- ── LEFT: Visual Branding Panel ───────────────────── -->
+        <div class="login-visual">
+            <div class="visual-bg-grid"></div>
+
+            <!-- Animated API Network Nodes -->
+            <div class="api-network">
+                <div class="net-node node-1"><span>AUTH</span></div>
+                <div class="net-node node-2"><span>PAY</span></div>
+                <div class="net-node node-3"><span>USR</span></div>
+                <div class="net-node node-4"><span>INV</span></div>
+                <div class="net-node node-5"><span>LOG</span></div>
+                <div class="net-node node-center">
+                    <i data-lucide="shield-check"></i>
+                </div>
+                <!-- Connection lines (SVG) -->
+                <svg class="net-lines" viewBox="0 0 500 500" fill="none">
+                    <line x1="250" y1="250" x2="100" y2="100" stroke="rgba(0,212,255,0.15)" stroke-width="1" />
+                    <line x1="250" y1="250" x2="400" y2="80" stroke="rgba(0,212,255,0.15)" stroke-width="1" />
+                    <line x1="250" y1="250" x2="80" y2="350" stroke="rgba(0,212,255,0.15)" stroke-width="1" />
+                    <line x1="250" y1="250" x2="420" y2="380" stroke="rgba(0,212,255,0.15)" stroke-width="1" />
+                    <line x1="250" y1="250" x2="250" y2="430" stroke="rgba(0,212,255,0.15)" stroke-width="1" />
+                    <!-- Animated pulses along lines -->
+                    <circle r="3" fill="#00d4ff" opacity="0.8">
+                        <animateMotion dur="3s" repeatCount="indefinite" path="M250,250 L100,100" />
+                    </circle>
+                    <circle r="3" fill="#00d4ff" opacity="0.8">
+                        <animateMotion dur="4s" repeatCount="indefinite" path="M250,250 L400,80" />
+                    </circle>
+                    <circle r="3" fill="#ff8c42" opacity="0.8">
+                        <animateMotion dur="3.5s" repeatCount="indefinite" path="M250,250 L80,350" />
+                    </circle>
+                    <circle r="3" fill="#00d4ff" opacity="0.8">
+                        <animateMotion dur="4.5s" repeatCount="indefinite" path="M250,250 L420,380" />
+                    </circle>
+                    <circle r="3" fill="#ff8c42" opacity="0.8">
+                        <animateMotion dur="5s" repeatCount="indefinite" path="M250,250 L250,430" />
+                    </circle>
+                </svg>
+            </div>
+
+            <!-- Floating endpoint labels -->
+            <div class="floating-endpoints">
+                <span class="endpoint ep-1">GET /api/v1/payments</span>
+                <span class="endpoint ep-2">POST /auth/token</span>
+                <span class="endpoint ep-3">PUT /users/{id}</span>
+                <span class="endpoint ep-4">GET /inventory/stock</span>
+            </div>
+
+            <!-- Brand text -->
+            <div class="visual-brand">
+                <div class="brand-mark">
+                    <div class="api-gov-logo">
+                        <div class="core-pillar"></div>
+                        <div class="chaos-line cl-1"></div>
+                        <div class="chaos-line cl-2"></div>
+                        <div class="chaos-line cl-3"></div>
+                        <div class="order-line ol-1"></div>
+                        <div class="order-line ol-2"></div>
+                        <div class="order-line ol-3"></div>
+                    </div>
+                </div>
+                <h1>API Governance</h1>
+                <p>Monitor. Control. Secure.</p>
+            </div>
+
+            <div class="visual-stats">
+                <div class="v-stat">
+                    <span class="v-stat-num">6</span>
+                    <span class="v-stat-label">Services</span>
+                </div>
+                <div class="v-stat-divider"></div>
+                <div class="v-stat">
+                    <span class="v-stat-num">99.9%</span>
+                    <span class="v-stat-label">Uptime</span>
+                </div>
+                <div class="v-stat-divider"></div>
+                <div class="v-stat">
+                    <span class="v-stat-num">24/7</span>
+                    <span class="v-stat-label">Monitoring</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── RIGHT: Login Form ─────────────────────────────── -->
+        <div class="login-form-panel">
+            <div class="login-form-inner">
+                <header class="form-header">
+                    <h2>Sign in</h2>
+                    <p>Select your account to continue</p>
+                </header>
+
+                {% if error %}
+                <div class="login-error-toast">
+                    <i data-lucide="alert-circle"></i>
+                    <span>{{ error }}</span>
+                </div>
+                {% endif %}
+
+                <form method="POST" action="/login" id="loginForm">
+                    <input type="hidden" name="user_id" id="selectedUserId">
+                    <input type="hidden" name="pin" id="pinValue">
+
+                    <div class="persona-list">
+                        {% for user in users %}
+                        <div class="persona-tile" data-user-id="{{ user.id }}" data-role="{{ user.role }}"
+                            onclick="selectPersona(this)">
+                            <div class="tile-avatar"
+                                style="background: hsl({{ loop.index * 55 }}, 55%, 52%);">
+                                {{ user.name[0] }}
+                            </div>
+                            <div class="tile-meta">
+                                <span class="user-name">{{ user.name }}</span>
+                                <span class="user-role">{{ user.role }}</span>
+                            </div>
+                            {% if user.role == 'Admin' %}
+                            <div class="tile-admin-icon">
+                                <i data-lucide="lock"></i>
+                            </div>
+                            {% endif %}
+                            <div class="tile-check">
+                                <i data-lucide="check"></i>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Admin PIN Layer -->
+                    <div class="security-layer" id="securityLayer">
+                        <div class="pin-prompt">
+                            <label>Admin PIN Required</label>
+                            <div class="pin-input-group">
+                                <i data-lucide="key-round"></i>
+                                <input type="password" id="pinInput" maxlength="8"
+                                    placeholder="••••" oninput="document.getElementById('pinValue').value = this.value">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="login-submit-btn" id="submitBtn" disabled>
+                        <span>Continue</span>
+                        <i data-lucide="arrow-right"></i>
+                    </button>
+                </form>
+
+                <div class="form-footer">
+                    <p>&copy; 2026 API Governance System</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        function selectPersona(tile) {
+            document.querySelectorAll('.persona-tile').forEach(t => t.classList.remove('active'));
+            tile.classList.add('active');
+            document.getElementById('selectedUserId').value = tile.dataset.userId;
+
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = false;
+
+            const secLayer = document.getElementById('securityLayer');
+            if (tile.dataset.role === 'Admin') {
+                secLayer.classList.add('visible');
+                document.getElementById('pinInput').focus();
+            } else {
+                secLayer.classList.remove('visible');
+                document.getElementById('pinValue').value = '';
+            }
+        }
+
+        document.getElementById('loginForm').onsubmit = function () {
+            const btn = document.getElementById('submitBtn');
+            btn.innerHTML = '<span>Signing in...</span><i data-lucide="loader-2" class="spin"></i>';
+            btn.disabled = true;
+            lucide.createIcons();
+        };
+    </script>
+</body>
+
+</html>

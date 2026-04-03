@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Governance Dashboard</title>
+    <meta name="description" content="Monitor, manage, and govern your APIs with real-time tracking and alerts.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body class="app-body">
+
+    <!-- ─── ACCENT BAR (signature top stripe) ──────────────── -->
+    <div class="accent-bar"></div>
+
+    <!-- ─── SIDEBAR ────────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-icon">
+                <div class="api-gov-logo">
+                    <div class="core-pillar"></div>
+                    <div class="chaos-line cl-1"></div>
+                    <div class="chaos-line cl-2"></div>
+                    <div class="chaos-line cl-3"></div>
+                    <div class="order-line ol-1"></div>
+                    <div class="order-line ol-2"></div>
+                    <div class="order-line ol-3"></div>
+                </div>
+            </div>
+            <div>
+                <h2>API Gov</h2>
+                <p>Control Center</p>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a class="nav-link active" data-section="dashboard" onclick="switchSection('dashboard')">
+                <i data-lucide="layout-dashboard"></i>
+                <span>Overview</span>
+            </a>
+            <a class="nav-link" data-section="apis" onclick="switchSection('apis')">
+                <i data-lucide="radio-tower"></i>
+                <span>Services</span>
+            </a>
+
+            {% if current_user.get('user_role') in ['Admin', 'Manager'] %}
+            <a class="nav-link" data-section="users" onclick="switchSection('users')">
+                <i data-lucide="users"></i>
+                <span>Team</span>
+            </a>
+            <a class="nav-link" data-section="alerts" onclick="switchSection('alerts')">
+                <i data-lucide="bell-ring"></i>
+                <span>Alerts</span>
+                {% if active_alerts > 0 %}
+                <span class="nav-badge">{{ active_alerts }}</span>
+                {% endif %}
+            </a>
+            <a class="nav-link" data-section="audit" onclick="switchSection('audit')">
+                <i data-lucide="scroll-text"></i>
+                <span>Audit Trail</span>
+            </a>
+            {% endif %}
+        </nav>
+
+        <div class="sidebar-profile">
+            <div class="profile-avatar">{{ current_user.get('user_name', 'U')[0] }}</div>
+            <div class="profile-info">
+                <div class="profile-name">{{ current_user.get('user_name', 'User') }}</div>
+                <div class="profile-role">{{ current_user.get('user_role', 'Guest') }}</div>
+            </div>
+            <form action="/logout" method="GET" style="margin:0;">
+                <button type="submit" class="logout-btn" title="Sign Out">
+                    <i data-lucide="log-out" style="width:14px;height:14px;"></i>
+                </button>
+            </form>
+        </div>
+    </aside>
+
+    <!-- ─── SIDEBAR OVERLAY ────────────────────────────────── -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- ─── MAIN ───────────────────────────────────────────── -->
+    <div class="main-content">
+
+        <!-- ─── TOP BAR ────────────────────────────────────── -->
+        <div class="topbar">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <button class="mobile-toggle" onclick="toggleSidebar()">
+                    <i data-lucide="menu"></i>
+                </button>
+                <div class="topbar-left">
+                    <h1 id="topbarTitle">Overview</h1>
+                    <p id="topbarSubtitle">Here's what's happening right now</p>
+                </div>
+            </div>
+            <div class="topbar-right">
+                <span class="topbar-clock" id="liveClock"></span>
+                {% if current_user.get('user_role') == 'Admin' %}
+                <button class="chaos-btn" onclick="openChaosModal()" title="Chaos Simulation">
+                    <i data-lucide="zap"></i>
+                    <span>Chaos</span>
+                </button>
+                {% endif %}
+                {% if current_user.get('user_role') in ['Admin', 'Manager'] %}
+                <button class="topbar-alert-btn" onclick="switchSection('alerts')" title="Alerts">
+                    <i data-lucide="bell"></i>
+                    {% if active_alerts > 0 %}<span class="alert-dot"></span>{% endif %}
+                </button>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- ─── PAGE CONTENT ───────────────────────────────── -->
+        <div class="page-content">
+
+            <!-- ═══════════════════════════════════════════════
+                 SECTION: OVERVIEW
+                 ═══════════════════════════════════════════════ -->
+            <section id="section-dashboard" class="page-section active">
+
+                <!-- Stats Row -->
+                <div class="stats-grid">
+                    <div class="stat-card stat-cyan">
+                        <div class="stat-icon"><i data-lucide="radio-tower"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-number" data-count="{{ total_apis }}">0</span>
+                            <span class="stat-label">Services</span>
+                        </div>
+                    </div>
+                    {% if current_user.get('user_role') in ['Admin', 'Manager'] %}
+                    <div class="stat-card stat-purple">
+                        <div class="stat-icon"><i data-lucide="users"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-number" data-count="{{ total_users }}">0</span>
+                            <span class="stat-label">Team Members</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="stat-card stat-green">
+                        <div class="stat-icon"><i data-lucide="activity"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-number" data-count="{{ total_calls }}">0</span>
+                            <span class="stat-label">Total Calls</span>
+                        </div>
+                    </div>
+                    {% if current_user.get('user_role') in ['Admin', 'Manager'] %}
+                    <div class="stat-card stat-amber">
+                        <div class="stat-icon"><i data-lucide="alert-triangle"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-number" data-count="{{ active_alerts }}">0</span>
+                            <span class="stat-label">Active Alerts</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Service Health Grid -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Service Health</h2>
+                        <span class="card-badge">Live</span>
+                    </div>
+                    <div class="health-grid">
+                        {% for api in apis %}
+                        <div class="health-card hc-{{ api.usage_status }}">
+                            <div class="hc-header">
+                                <div class="hc-status-dot dot-{{ api.status | lower }}"></div>
+                                <span class="hc-name">{{ api.name }}</span>
+                                <span class="hc-status-label">{{ api.status }}</span>
+                            </div>
+                            <div class="hc-metrics">
+                                <div class="hc-metric">
+                                    <span class="hc-metric-val">{{ api.latency_ms }}<small>ms</small></span>
+                                    <span class="hc-metric-label">Latency</span>
+                                </div>
+                                <div class="hc-metric">
+                                    <span class="hc-metric-val">{{ api.uptime_pct }}<small>%</small></span>
+                                    <span class="hc-metric-label">Uptime</span>
+                                </div>
+                                <div class="hc-metric">
+                                    <span class="hc-metric-val">{{ api.total_usage }}<small>/{{ api.allowed_usage
+                                            }}</small></span>
+                                    <span class="hc-metric-label">Usage</span>
+                                </div>
+                            </div>
+                            <div class="hc-usage-bar">
+                                <div class="hc-usage-fill hc-fill-{{ api.usage_status }}"
+                                    style="width:{{ [api.usage_percent, 100]|min }}%"></div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="charts-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Usage Trend</h2>
+                            <span class="card-subtitle">Last 7 days</span>
+                        </div>
+                        <canvas id="usageChart"></canvas>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Traffic Split</h2>
+                            <span class="card-subtitle">By service</span>
+                        </div>
+                        <canvas id="apiPieChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Recent Alerts -->
+                {% if current_user.get('user_role') in ['Admin', 'Manager'] and alerts %}
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Recent Alerts</h2>
+                        {% if alerts | length > 5 %}
+                        <a class="header-link" onclick="switchSection('alerts')">View all &rarr;</a>
+                        {% endif %}
+                    </div>
+                    <div class="alerts-list">
+                        {% for alert in alerts[:5] %}
+                        <div class="alert-item alert-{{ alert.type }}">
+                            <div class="alert-content">
+                                <span class="alert-type-badge">{{ alert.type | upper }}</span>
+                                <span>{{ alert.message or 'Alert on ' + (alert.api_name or 'N/A') }}</span>
+                            </div>
+                            <span class="alert-time">{{ alert.timestamp }}</span>
+                            {% if alert.status == 'new' %}
+                            <a href="/resolve_alert/{{ alert.id }}" class="btn btn-sm btn-outline">Resolve</a>
+                            {% else %}
+                            <span class="badge badge-resolved">Resolved</span>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </section>
+
+            <!-- ═══════════════════════════════════════════════
+                 SECTION: SERVICES (APIs)
+                 ═══════════════════════════════════════════════ -->
+            <section id="section-apis" class="page-section">
+                <div class="section-layout"
+                    style="{% if current_user.get('user_role') != 'Admin' %}grid-template-columns: 1fr;{% endif %}">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>API Registry</h2>
+                            <div class="header-actions">
+                                <input type="text" class="search-input" id="apiSearchInput"
+                                    placeholder="Filter services..."
+                                    oninput="filterTable('apiSearchInput', 'apiTableBody')">
+                                <a href="/export/apis" class="btn btn-sm btn-export"><i data-lucide="download"
+                                        style="width:13px;height:13px;"></i> CSV</a>
+                            </div>
+                        </div>
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Service</th>
+                                        <th>Status</th>
+                                        <th>Calls</th>
+                                        <th>Limit</th>
+                                        <th>$/Call</th>
+                                        <th>Latency</th>
+                                        <th>Load</th>
+                                        {% if current_user.get('user_role') == 'Admin' %}
+                                        <th></th>
+                                        {% endif %}
+                                    </tr>
+                                </thead>
+                                <tbody id="apiTableBody">
+                                    {% for api in apis %}
+                                    <tr>
+                                        <td>
+                                            <div class="svc-cell">
+                                                <strong>{{ api.name }}</strong>
+                                                <span class="svc-desc">{{ api.description }}</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="status-chip chip-{{ api.status | lower }}">
+                                                <span class="chip-dot"></span>{{ api.status }}
+                                            </span>
+                                        </td>
+                                        <td class="mono">{{ api.total_usage }}</td>
+                                        <td class="mono">{{ api.allowed_usage }}</td>
+                                        <td class="mono">${{ "%.2f"|format(api.cost_per_call) }}</td>
+                                        <td>
+                                            <span
+                                                class="latency-val {% if api.latency_ms > 150 %}lat-high{% elif api.latency_ms > 80 %}lat-mid{% endif %}">{{
+                                                api.latency_ms }}ms</span>
+                                        </td>
+                                        <td>
+                                            <div class="load-cell">
+                                                <div class="load-bar">
+                                                    <div class="load-fill load-{{ api.usage_status }}"
+                                                        style="width:{{ [api.usage_percent, 100]|min }}%"></div>
+                                                </div>
+                                                <span class="load-pct mono">{{ api.usage_percent }}%</span>
+                                            </div>
+                                        </td>
+                                        {% if current_user.get('user_role') == 'Admin' %}
+                                        <td>
+                                            <div class="row-actions">
+                                                <button class="act-btn"
+                                                    onclick="openEditApiModal({{ api.id }}, '{{ api.name }}', '{{ api.description }}', {{ api.allowed_usage }}, {{ api.cost_per_call }})"
+                                                    title="Edit"><i data-lucide="pencil"></i></button>
+                                                <form action="/delete_api/{{ api.id }}" method="POST" style="margin:0;"
+                                                    onsubmit="return confirm('Delete {{ api.name }}?')">
+                                                    <button type="submit" class="act-btn act-danger" title="Delete"><i
+                                                            data-lucide="trash-2"></i></button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                        {% endif %}
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {% if current_user.get('user_role') == 'Admin' %}
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Register Service</h2>
+                        </div>
+                        <form action="/add_api" method="POST">
+                            <div class="form-group">
+                                <label>Service Name</label>
+                                <input type="text" name="name" placeholder="e.g. Payment API" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Description</label>
+                                <input type="text" name="description" placeholder="What does it do?">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Usage Limit</label>
+                                    <input type="number" name="allowed_usage" value="10">
+                                </div>
+                                <div class="form-group">
+                                    <label>Cost / Call ($)</label>
+                                    <input type="number" step="0.01" name="cost_per_call" value="0.01">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-full">Register Service</button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+
+            <!-- ═══════════════════════════════════════════════
+                 SECTION: TEAM (Users)
+                 ═══════════════════════════════════════════════ -->
+            {% if current_user.get('user_role') in ['Admin', 'Manager'] %}
+            <section id="section-users" class="page-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Team Directory</h2>
+                        <input type="text" class="search-input" id="userSearchInput" placeholder="Filter members..."
+                            oninput="filterTable('userSearchInput', 'userTableBody')">
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Member</th>
+                                    <th>Role</th>
+                                    {% if current_user.get('user_role') == 'Admin' %}<th></th>{% endif %}
+                                </tr>
+                            </thead>
+                            <tbody id="userTableBody">
+                                {% for user in users %}
+                                <tr>
+                                    <td>
+                                        <div class="member-cell">
+                                            <span class="member-avatar"
+                                                style="background:hsl({{ (loop.index * 67) % 360 }}, 50%, 50%);">{{
+                                                user.name[0] }}</span>
+                                            <strong>{{ user.name }}</strong>
+                                        </div>
+                                    </td>
+                                    <td><span class="role-tag role-{{ user.role }}">{{ user.role }}</span></td>
+                                    {% if current_user.get('user_role') == 'Admin' %}
+                                    <td>
+                                        <div class="row-actions">
+                                            <button class="act-btn"
+                                                onclick="openEditUserModal({{ user.id }}, '{{ user.name }}', '{{ user.role }}')"
+                                                title="Edit"><i data-lucide="pencil"></i></button>
+                                            {% if user.id != current_user.get('user_id') %}
+                                            <form action="/delete_user/{{ user.id }}" method="POST" style="margin:0;"
+                                                onsubmit="return confirm('Remove {{ user.name }}?')">
+                                                <button type="submit" class="act-btn act-danger" title="Remove"><i
+                                                        data-lucide="trash-2"></i></button>
+                                            </form>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="two-col-grid"
+                    style="{% if current_user.get('user_role') != 'Admin' %}grid-template-columns: 1fr;{% endif %}">
+                    {% if current_user.get('user_role') == 'Admin' %}
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Add Member</h2>
+                        </div>
+                        <form action="/add_user" method="POST">
+                            <div class="form-group">
+                                <label>Full Name</label>
+                                <input type="text" name="name" placeholder="e.g. John Doe" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Role</label>
+                                <select name="role">
+                                    <option value="Developer">Developer</option>
+                                    <option value="Manager">Manager</option>
+                                    <option value="Admin">Admin</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-full">Add Member</button>
+                        </form>
+                    </div>
+                    {% endif %}
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Simulate Traffic</h2>
+                        </div>
+                        <form action="/simulate_usage" method="POST">
+                            <div class="form-group">
+                                <label>Target Service</label>
+                                <select name="api_id" required>
+                                    {% for api in apis %}<option value="{{ api.id }}">{{ api.name }}</option>{% endfor
+                                    %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Acting User</label>
+                                <select name="user_id" required>
+                                    {% for user in users %}<option value="{{ user.id }}">{{ user.name }}</option>{%
+                                    endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Number of Calls</label>
+                                <input type="number" name="count" value="50" min="1">
+                            </div>
+                            <button type="submit" class="btn btn-amber btn-full">Simulate Traffic</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+            {% endif %}
+
+            <!-- ═══════════════════════════════════════════════
+                 SECTION: ALERTS
+                 ═══════════════════════════════════════════════ -->
+            {% if current_user.get('user_role') in ['Admin', 'Manager'] %}
+            <section id="section-alerts" class="page-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>All Alerts</h2>
+                        <a href="/export/alerts" class="btn btn-sm btn-export"><i data-lucide="download"
+                                style="width:13px;height:13px;"></i> CSV</a>
+                    </div>
+                    {% if alerts %}
+                    <div class="alerts-list">
+                        {% for alert in alerts %}
+                        <div class="alert-item alert-{{ alert.type }}">
+                            <div class="alert-content">
+                                <span class="alert-type-badge">{{ alert.type | upper }}</span>
+                                <span>{{ alert.message or 'Alert on ' + (alert.api_name or 'N/A') }}</span>
+                            </div>
+                            <span class="alert-time">{{ alert.timestamp }}</span>
+                            {% if alert.status == 'new' %}
+                            <a href="/resolve_alert/{{ alert.id }}" class="btn btn-sm btn-outline">Resolve</a>
+                            {% else %}
+                            <span class="badge badge-resolved">Resolved</span>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <p>No alerts — all systems nominal.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+            {% endif %}
+
+            <!-- ═══════════════════════════════════════════════
+                 SECTION: AUDIT TRAIL
+                 ═══════════════════════════════════════════════ -->
+            {% if current_user.get('user_role') in ['Admin', 'Manager'] %}
+            <section id="section-audit" class="page-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Activity Log</h2>
+                        <div class="header-actions">
+                            <input type="text" class="search-input" id="auditSearchInput" placeholder="Filter..."
+                                oninput="filterTable('auditSearchInput', 'auditTableBody')">
+                            <a href="/export/audit" class="btn btn-sm btn-export"><i data-lucide="download"
+                                    style="width:13px;height:13px;"></i> CSV</a>
+                        </div>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>User</th>
+                                    <th>Action</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditTableBody">
+                                <tr>
+                                    <td colspan="4">
+                                        <div class="empty-state">
+                                            <p>Loading...</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+            {% endif %}
+
+        </div><!-- /page-content -->
+
+        <footer>API Governance &copy; 2026</footer>
+    </div><!-- /main-content -->
+
+    <!-- ─── EDIT API MODAL ──────────────────────────────────── -->
+    <div id="editApiModal" class="modal">
+        <div class="modal-box">
+            <div class="modal-head">
+                <h3>Edit Service</h3>
+                <button class="modal-close" onclick="closeModal('editApiModal')">&times;</button>
+            </div>
+            <form id="editApiForm" method="POST">
+                <div class="form-group"><label>Name</label><input type="text" name="name" id="editApiName" required>
+                </div>
+                <div class="form-group"><label>Description</label><input type="text" name="description"
+                        id="editApiDesc"></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Limit</label><input type="number" name="allowed_usage"
+                            id="editApiLimit"></div>
+                    <div class="form-group"><label>$/Call</label><input type="number" step="0.01" name="cost_per_call"
+                            id="editApiCost"></div>
+                </div>
+                <button type="submit" class="btn btn-full">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ─── EDIT USER MODAL ─────────────────────────────────── -->
+    <div id="editUserModal" class="modal">
+        <div class="modal-box">
+            <div class="modal-head">
+                <h3>Edit Member</h3>
+                <button class="modal-close" onclick="closeModal('editUserModal')">&times;</button>
+            </div>
+            <form id="editUserForm" method="POST">
+                <div class="form-group"><label>Name</label><input type="text" name="name" id="editUserName" required>
+                </div>
+                <div class="form-group">
+                    <label>Role</label>
+                    <select name="role" id="editUserRole">
+                        <option value="Developer">Developer</option>
+                        <option value="Manager">Manager</option>
+                        <option value="Admin">Admin</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-full">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ─── CHAOS MODAL ────────────────────────────────────── -->
+    <div id="chaosModal" class="modal">
+        <div class="modal-box chaos-box">
+            <div class="modal-head">
+                <h3><i data-lucide="zap" style="width:18px;height:18px;color:#ff8c42;"></i> Chaos Simulation</h3>
+                <button class="modal-close" onclick="closeChaosModal()">&times;</button>
+            </div>
+            <p class="chaos-desc">Trigger anomalies to test system alerts and resilience.</p>
+            <div class="chaos-options">
+                <button class="chaos-opt" onclick="triggerChaos('spike')">
+                    <i data-lucide="trending-up"></i>
+                    <div><strong>Traffic Spike</strong><span>500% surge across all endpoints</span></div>
+                </button>
+                <button class="chaos-opt chaos-opt-danger" onclick="triggerChaos('outage')">
+                    <i data-lucide="wifi-off"></i>
+                    <div><strong>Service Outage</strong><span>Force a random API offline</span></div>
+                </button>
+                <button class="chaos-opt chaos-opt-reset" onclick="triggerChaos('reset')">
+                    <i data-lucide="refresh-ccw"></i>
+                    <div><strong>Stabilize</strong><span>Clear all simulated anomalies</span></div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── TOAST ──────────────────────────────────────────── -->
+    <div id="toast" class="toast">
+        <div class="toast-inner" id="toastInner"></div>
+    </div>
+
+    <!-- ─── AUTO-REFRESH ───────────────────────────────────── -->
+    <div class="refresh-pill" id="refreshPill">
+        <i data-lucide="refresh-cw" style="width:11px;height:11px;"></i>
+        <span>Refresh in <strong id="refreshCountdown">30</strong>s</span>
+    </div>
+
+    <!-- ─── SCRIPTS ────────────────────────────────────────── -->
+    <script>
+        lucide.createIcons();
+
+        // ── Section Switching ──
+        const titles = {
+            dashboard: ['Overview', "Here's what's happening right now"],
+            apis: ['Services', 'API registry and monitoring'],
+            users: ['Team', 'Members and traffic simulation'],
+            alerts: ['Alerts', 'Warnings and violations'],
+            audit: ['Audit Trail', 'System activity log']
+        };
+
+        function switchSection(name) {
+            document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+            const el = document.getElementById('section-' + name);
+            if (el) el.classList.add('active');
+
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            const nav = document.querySelector(`.nav-link[data-section="${name}"]`);
+            if (nav) nav.classList.add('active');
+
+            if (titles[name]) {
+                document.getElementById('topbarTitle').textContent = titles[name][0];
+                document.getElementById('topbarSubtitle').textContent = titles[name][1];
+            }
+
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('sidebarOverlay').classList.remove('show');
+            lucide.createIcons();
+            if (name === 'audit') loadAuditTrail();
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('sidebarOverlay').classList.toggle('show');
+        }
+
+        // ── Clock ──
+        function updateClock() {
+            const now = new Date();
+            const d = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const t = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+            document.getElementById('liveClock').textContent = d + ' · ' + t;
+        }
+        updateClock(); setInterval(updateClock, 30000);
+
+        // ── Animated Counters ──
+        function animateCounters() {
+            document.querySelectorAll('.stat-number[data-count]').forEach(el => {
+                const target = parseInt(el.getAttribute('data-count'));
+                const dur = 800;
+                const start = performance.now();
+                function step(ts) {
+                    const p = Math.min((ts - start) / dur, 1);
+                    el.textContent = Math.floor(p * target).toLocaleString();
+                    if (p < 1) requestAnimationFrame(step);
+                    else el.textContent = target.toLocaleString();
+                }
+                requestAnimationFrame(step);
+            });
+        }
+        animateCounters();
+
+        // ── Charts ──
+        fetch('/api/chart_data').then(r => r.json()).then(data => {
+            const ctx = document.getElementById('usageChart').getContext('2d');
+            const g = ctx.createLinearGradient(0, 0, 0, 250);
+            g.addColorStop(0, 'rgba(0,212,255,0.15)');
+            g.addColorStop(1, 'rgba(0,212,255,0)');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'API Calls',
+                        data: data.values,
+                        borderColor: '#00d4ff',
+                        backgroundColor: g,
+                        fill: true,
+                        tension: 0.35,
+                        pointBackgroundColor: '#00d4ff',
+                        pointBorderColor: '#0d1117',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { backgroundColor: '#1c2029', titleFont: { family: 'Inter' }, bodyFont: { family: 'JetBrains Mono, monospace', size: 12 }, padding: 10, cornerRadius: 6, borderColor: 'rgba(255,255,255,0.06)', borderWidth: 1 }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false }, ticks: { font: { family: 'JetBrains Mono', size: 10 }, color: '#5f6671' } },
+                        x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 11 }, color: '#5f6671' } }
+                    }
+                }
+            });
+
+            const colors = ['#00d4ff', '#ff8c42', '#a78bfa', '#34d399', '#f472b6', '#fbbf24', '#60a5fa', '#fb7185'];
+            new Chart(document.getElementById('apiPieChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: data.api_usage.map(a => a.name),
+                    datasets: [{ data: data.api_usage.map(a => a.usage), backgroundColor: colors, borderWidth: 0, hoverOffset: 4 }]
+                },
+                options: {
+                    responsive: true,
+                    cutout: '68%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 8, padding: 12, font: { family: 'Inter', size: 11 }, color: '#9ca3af', usePointStyle: true, pointStyle: 'circle' } },
+                        tooltip: { backgroundColor: '#1c2029', titleFont: { family: 'Inter' }, bodyFont: { family: 'Inter' }, padding: 10, cornerRadius: 6, borderColor: 'rgba(255,255,255,0.06)', borderWidth: 1 }
+                    }
+                }
+            });
+        });
+
+        // ── Modals ──
+        function openChaosModal() { document.getElementById('chaosModal').style.display = 'flex'; lucide.createIcons(); }
+        function closeChaosModal() { document.getElementById('chaosModal').style.display = 'none'; }
+
+        function triggerChaos(type) {
+            fetch('/simulate_chaos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type }) })
+                .then(r => r.json()).then(d => { showToast(d.message); closeChaosModal(); setTimeout(() => location.reload(), 1500); });
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            document.getElementById('toastInner').textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 4000);
+        }
+
+        function openEditApiModal(id, name, desc, limit, cost) {
+            document.getElementById('editApiForm').action = '/edit_api/' + id;
+            document.getElementById('editApiName').value = name;
+            document.getElementById('editApiDesc').value = desc;
+            document.getElementById('editApiLimit').value = limit;
+            document.getElementById('editApiCost').value = cost;
+            document.getElementById('editApiModal').style.display = 'flex';
+        }
+
+        function openEditUserModal(id, name, role) {
+            document.getElementById('editUserForm').action = '/edit_user/' + id;
+            document.getElementById('editUserName').value = name;
+            document.getElementById('editUserRole').value = role;
+            document.getElementById('editUserModal').style.display = 'flex';
+        }
+
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        window.onclick = function (e) {
+            ['chaosModal', 'editApiModal', 'editUserModal'].forEach(id => {
+                if (e.target === document.getElementById(id)) closeModal(id);
+            });
+        };
+
+        // ── Search ──
+        function filterTable(inputId, tbodyId) {
+            const q = document.getElementById(inputId).value.toLowerCase();
+            const rows = document.getElementById(tbodyId).getElementsByTagName('tr');
+            for (let r of rows) r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
+        }
+
+        // ── Audit Trail ──
+        function loadAuditTrail() {
+            fetch('/api/audit_log').then(r => r.json()).then(data => {
+                const tbody = document.getElementById('auditTableBody');
+                if (!data.length) { tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><p>No records yet.</p></div></td></tr>'; return; }
+                const cls = { 'LOGIN': 'badge-green', 'LOGOUT': 'badge-green', 'CREATE_API': 'badge-cyan', 'UPDATE_API': 'badge-amber', 'DELETE_API': 'badge-red', 'CREATE_USER': 'badge-cyan', 'UPDATE_USER': 'badge-amber', 'DELETE_USER': 'badge-red', 'SIMULATE_USAGE': 'badge-amber', 'RESOLVE_ALERT': 'badge-green', 'CHAOS_SPIKE': 'badge-red', 'CHAOS_OUTAGE': 'badge-red', 'CHAOS_RESET': 'badge-green', 'EXPORT': 'badge-cyan' };
+                tbody.innerHTML = data.map(l => `<tr><td class="mono ts-cell">${l.timestamp}</td><td><strong>${l.user_name || 'System'}</strong></td><td><span class="badge ${cls[l.action] || 'badge-green'}">${l.action.replace(/_/g, ' ')}</span></td><td class="detail-cell">${l.details || '—'}</td></tr>`).join('');
+            });
+        }
+
+        // ── Auto-refresh ──
+        let countdown = 30;
+        setInterval(() => {
+            countdown--;
+            const el = document.getElementById('refreshCountdown');
+            if (el) el.textContent = countdown;
+            if (countdown <= 0) {
+                const dash = document.getElementById('section-dashboard');
+                if (dash && dash.classList.contains('active')) location.reload();
+                else countdown = 30;
+            }
+        }, 1000);
+    </script>
+</body>
+
+</html>

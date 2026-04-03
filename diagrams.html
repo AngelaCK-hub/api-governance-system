@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SDS Diagrams — API Governance System</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f8f9fa;
+            color: #1a1a2e;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.6rem;
+            color: #312e81;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #6b7280;
+            margin-bottom: 40px;
+            font-size: 0.95rem;
+        }
+
+        .diagram-card {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 40px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+            page-break-inside: avoid;
+        }
+
+        .diagram-card h2 {
+            font-size: 1.15rem;
+            color: #1e1b4b;
+            margin-bottom: 6px;
+            border-bottom: 2px solid #eef2ff;
+            padding-bottom: 8px;
+        }
+
+        .diagram-card .figure-num {
+            font-size: 0.8rem;
+            color: #6366f1;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        /* ──── ARCHITECTURE DIAGRAM ──── */
+        .arch-diagram {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+        }
+
+        .arch-layer {
+            width: 100%;
+            max-width: 700px;
+            border-radius: 12px;
+            padding: 20px 24px;
+            position: relative;
+        }
+
+        .layer-client {
+            background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+            border: 2px solid #a78bfa;
+        }
+
+        .layer-server {
+            background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+            border: 2px solid #818cf8;
+        }
+
+        .layer-controller {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid #a5b4fc;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .layer-model {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid #a5b4fc;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .layer-db {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border: 2px solid #f59e0b;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .arch-layer h3 {
+            font-size: 0.95rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .arch-layer .items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .arch-layer .item {
+            background: white;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .arrow-down {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 6px 0;
+            color: #6366f1;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .arrow-down .arrow-icon {
+            font-size: 1.4rem;
+            line-height: 1;
+        }
+
+        /* ──── ER DIAGRAM ──── */
+        .er-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .er-entity {
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid;
+        }
+
+        .er-entity.api {
+            border-color: #6366f1;
+        }
+
+        .er-entity.user {
+            border-color: #10b981;
+        }
+
+        .er-entity.log {
+            border-color: #f59e0b;
+        }
+
+        .er-entity.alert {
+            border-color: #ef4444;
+        }
+
+        .er-entity-header {
+            padding: 10px 16px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: white;
+        }
+
+        .er-entity.api .er-entity-header {
+            background: #6366f1;
+        }
+
+        .er-entity.user .er-entity-header {
+            background: #10b981;
+        }
+
+        .er-entity.log .er-entity-header {
+            background: #f59e0b;
+        }
+
+        .er-entity.alert .er-entity-header {
+            background: #ef4444;
+        }
+
+        .er-entity-body {
+            padding: 12px 16px;
+            background: white;
+        }
+
+        .er-field {
+            font-size: 0.82rem;
+            padding: 3px 0;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .er-field:last-child {
+            border-bottom: none;
+        }
+
+        .er-field .fname {
+            font-weight: 600;
+        }
+
+        .er-field .ftype {
+            color: #6b7280;
+            font-size: 0.78rem;
+        }
+
+        .er-key {
+            display: inline-block;
+            font-size: 0.65rem;
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-weight: 700;
+            margin-right: 4px;
+        }
+
+        .pk {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .fk {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .er-relationships {
+            margin-top: 20px;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px dashed #cbd5e1;
+        }
+
+        .er-relationships h4 {
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            color: #475569;
+        }
+
+        .er-rel-item {
+            font-size: 0.82rem;
+            padding: 4px 0;
+            color: #334155;
+        }
+
+        .er-rel-item span {
+            font-weight: 600;
+        }
+
+        /* ──── SEQUENCE DIAGRAM ──── */
+        .seq-diagram {
+            overflow-x: auto;
+        }
+
+        .seq-actors {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 0;
+        }
+
+        .seq-actor {
+            text-align: center;
+            padding: 10px 8px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.82rem;
+        }
+
+        .seq-actor:nth-child(1) {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .seq-actor:nth-child(2) {
+            background: #ede9fe;
+            color: #5b21b6;
+        }
+
+        .seq-actor:nth-child(3) {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .seq-actor:nth-child(4) {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .seq-step {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            min-height: 40px;
+            align-items: center;
+            border-bottom: 1px solid #f0f0f0;
+            padding: 8px 0;
+        }
+
+        .seq-cell {
+            text-align: center;
+            font-size: 0.78rem;
+            position: relative;
+        }
+
+        .seq-msg {
+            background: #f0f4ff;
+            border: 1px solid #c7d2fe;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 0.76rem;
+            display: inline-block;
+            max-width: 100%;
+        }
+
+        .seq-msg.request {
+            background: #dbeafe;
+            border-color: #93c5fd;
+        }
+
+        .seq-msg.response {
+            background: #d1fae5;
+            border-color: #6ee7b7;
+        }
+
+        .seq-msg.action {
+            background: #fef3c7;
+            border-color: #fcd34d;
+        }
+
+        .seq-msg.redirect {
+            background: #ede9fe;
+            border-color: #c4b5fd;
+        }
+
+        .seq-arrow {
+            font-size: 0.7rem;
+            color: #6b7280;
+        }
+
+        .seq-lifeline {
+            border-left: 2px dashed #d1d5db;
+            min-height: 100%;
+            margin: 0 auto;
+            width: 0;
+        }
+
+        /* ──── ALERT THRESHOLD TABLE ──── */
+        .threshold-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        .threshold-table th {
+            background: #f8f9ff;
+            padding: 10px 16px;
+            text-align: left;
+            font-size: 0.82rem;
+            color: #4338ca;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .threshold-table td {
+            padding: 10px 16px;
+            font-size: 0.88rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.82rem;
+        }
+
+        .badge-safe {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-critical {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .color-dot {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+
+        .dot-green {
+            background: #22c55e;
+        }
+
+        .dot-yellow {
+            background: #f59e0b;
+        }
+
+        .dot-red {
+            background: #ef4444;
+        }
+
+        /* ──── FLOW DIAGRAM ──── */
+        .flow-steps {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .flow-step {
+            padding: 12px 28px;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-weight: 500;
+            text-align: center;
+            width: 320px;
+        }
+
+        .flow-step.start {
+            background: #6366f1;
+            color: white;
+            border-radius: 30px;
+        }
+
+        .flow-step.process {
+            background: #e0e7ff;
+            color: #1e1b4b;
+            border: 1px solid #a5b4fc;
+        }
+
+        .flow-step.decision {
+            background: #fef3c7;
+            color: #92400e;
+            border: 2px solid #f59e0b;
+            transform: rotate(0deg);
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+            padding: 28px 20px;
+            width: 240px;
+        }
+
+        .flow-step.alert-w {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #f59e0b;
+        }
+
+        .flow-step.alert-c {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+
+        .flow-step.safe-box {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #22c55e;
+        }
+
+        .flow-step.end {
+            background: #1e1b4b;
+            color: white;
+            border-radius: 30px;
+        }
+
+        .flow-arrow {
+            color: #6b7280;
+            font-size: 1.2rem;
+        }
+
+        .flow-branch {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .flow-branch-label {
+            font-size: 0.75rem;
+            color: #6b7280;
+            font-weight: 600;
+        }
+
+        /* PRINT HINT */
+        .print-hint {
+            text-align: center;
+            color: #9ca3af;
+            font-size: 0.8rem;
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px dashed #d1d5db;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+
+        <h1>📐 SDS Diagrams — API Governance System</h1>
+        <p class="subtitle">Screenshot each diagram below and paste into your Word document</p>
+        <p class="print-hint">💡 Tip: Use <strong>Win + Shift + S</strong> to screenshot each diagram individually</p>
+
+        <!-- ════════════════════════════════════════════════════════ -->
+        <!-- DIAGRAM 1: SYSTEM ARCHITECTURE                         -->
+        <!-- ════════════════════════════════════════════════════════ -->
+        <div class="diagram-card">
+            <span class="figure-num">Figure 1</span>
+            <h2>System Architecture Diagram (MVC Pattern)</h2>
+
+            <div class="arch-diagram">
+                <!-- CLIENT -->
+                <div class="arch-layer layer-client">
+                    <h3>🖥️ Client Layer (Browser — VIEW)</h3>
+                    <div class="items">
+                        <div class="item">dashboard.html</div>
+                        <div class="item">style.css</div>
+                        <div class="item">Chart.js</div>
+                        <div class="item">HTML Forms</div>
+                    </div>
+                </div>
+
+                <div class="arrow-down">
+                    <span>HTTP Requests (GET / POST)</span>
+                    <span class="arrow-icon">⬇️</span>
+                </div>
+
+                <!-- SERVER -->
+                <div class="arch-layer layer-server">
+                    <h3>🐍 Server Layer (Flask — app.py)</h3>
+
+                    <!-- Controller -->
+                    <div class="layer-controller">
+                        <h3>📋 Controller — Route Handlers</h3>
+                        <div class="items">
+                            <div class="item">GET / → dashboard()</div>
+                            <div class="item">POST /add_api → add_api()</div>
+                            <div class="item">POST /add_user → add_user()</div>
+                            <div class="item">POST /simulate_usage → simulate_usage()</div>
+                            <div class="item">GET /resolve_alert → resolve_alert()</div>
+                            <div class="item">GET /api/chart_data → chart_data()</div>
+                        </div>
+                    </div>
+
+                    <!-- Model -->
+                    <div class="layer-model">
+                        <h3>⚙️ Model — Business Logic</h3>
+                        <div class="items">
+                            <div class="item">get_db()</div>
+                            <div class="item">init_db()</div>
+                            <div class="item">seed_sample_data()</div>
+                            <div class="item">check_and_generate_alerts()</div>
+                            <div class="item">get_api_usage()</div>
+                        </div>
+                    </div>
+
+                    <!-- Database -->
+                    <div class="layer-db">
+                        <h3>🗄️ Database — SQLite (db/governance.db)</h3>
+                        <div class="items" style="justify-content: center;">
+                            <div class="item">apis</div>
+                            <div class="item">users</div>
+                            <div class="item">access_logs</div>
+                            <div class="item">alerts</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════ -->
+        <!-- DIAGRAM 2: ENTITY-RELATIONSHIP DIAGRAM                 -->
+        <!-- ════════════════════════════════════════════════════════ -->
+        <div class="diagram-card">
+            <span class="figure-num">Figure 2</span>
+            <h2>Entity-Relationship (ER) Diagram</h2>
+
+            <div class="er-grid">
+                <!-- APIS -->
+                <div class="er-entity api">
+                    <div class="er-entity-header">📡 APIS</div>
+                    <div class="er-entity-body">
+                        <div class="er-field"><span class="fname"><span class="er-key pk">PK</span>id</span> <span
+                                class="ftype">INTEGER</span></div>
+                        <div class="er-field"><span class="fname">name</span> <span class="ftype">TEXT NOT NULL</span>
+                        </div>
+                        <div class="er-field"><span class="fname">description</span> <span class="ftype">TEXT</span>
+                        </div>
+                        <div class="er-field"><span class="fname">allowed_usage</span> <span
+                                class="ftype">INTEGER</span></div>
+                        <div class="er-field"><span class="fname">cost_per_call</span> <span class="ftype">REAL</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- USERS -->
+                <div class="er-entity user">
+                    <div class="er-entity-header">👥 USERS</div>
+                    <div class="er-entity-body">
+                        <div class="er-field"><span class="fname"><span class="er-key pk">PK</span>id</span> <span
+                                class="ftype">INTEGER</span></div>
+                        <div class="er-field"><span class="fname">name</span> <span class="ftype">TEXT NOT NULL</span>
+                        </div>
+                        <div class="er-field"><span class="fname">role</span> <span class="ftype">TEXT NOT NULL</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ACCESS_LOGS -->
+                <div class="er-entity log">
+                    <div class="er-entity-header">📊 ACCESS_LOGS</div>
+                    <div class="er-entity-body">
+                        <div class="er-field"><span class="fname"><span class="er-key pk">PK</span>id</span> <span
+                                class="ftype">INTEGER</span></div>
+                        <div class="er-field"><span class="fname"><span class="er-key fk">FK</span>user_id</span> <span
+                                class="ftype">→ users(id)</span></div>
+                        <div class="er-field"><span class="fname"><span class="er-key fk">FK</span>api_id</span> <span
+                                class="ftype">→ apis(id)</span></div>
+                        <div class="er-field"><span class="fname">timestamp</span> <span class="ftype">DATETIME</span>
+                        </div>
+                        <div class="er-field"><span class="fname">usage_count</span> <span class="ftype">INTEGER</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ALERTS -->
+                <div class="er-entity alert">
+                    <div class="er-entity-header">🚨 ALERTS</div>
+                    <div class="er-entity-body">
+                        <div class="er-field"><span class="fname"><span class="er-key pk">PK</span>id</span> <span
+                                class="ftype">INTEGER</span></div>
+                        <div class="er-field"><span class="fname">type</span> <span class="ftype">TEXT NOT NULL</span>
+                        </div>
+                        <div class="er-field"><span class="fname"><span class="er-key fk">FK</span>api_id</span> <span
+                                class="ftype">→ apis(id)</span></div>
+                        <div class="er-field"><span class="fname"><span class="er-key fk">FK</span>user_id</span> <span
+                                class="ftype">→ users(id)</span></div>
+                        <div class="er-field"><span class="fname">status</span> <span class="ftype">TEXT</span></div>
+                        <div class="er-field"><span class="fname">message</span> <span class="ftype">TEXT</span></div>
+                        <div class="er-field"><span class="fname">timestamp</span> <span class="ftype">DATETIME</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Relationships -->
+            <div class="er-relationships">
+                <h4>🔗 Relationships</h4>
+                <div class="er-rel-item">• One <span>User</span> ——→ has many <span>AccessLogs</span> (1 : N)</div>
+                <div class="er-rel-item">• One <span>API</span> ——→ has many <span>AccessLogs</span> (1 : N)</div>
+                <div class="er-rel-item">• One <span>API</span> ——→ has many <span>Alerts</span> (1 : N)</div>
+                <div class="er-rel-item">• One <span>User</span> ——→ has many <span>Alerts</span> (1 : N, optional)
+                </div>
+            </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════ -->
+        <!-- DIAGRAM 3: ALERT THRESHOLD RULES                      -->
+        <!-- ════════════════════════════════════════════════════════ -->
+        <div class="diagram-card">
+            <span class="figure-num">Figure 3</span>
+            <h2>Alert Threshold Rules</h2>
+
+            <table class="threshold-table">
+                <thead>
+                    <tr>
+                        <th>Usage Level</th>
+                        <th>Status</th>
+                        <th>Dashboard Color</th>
+                        <th>User Sees</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>0% – 74%</td>
+                        <td><span class="badge badge-safe">Safe</span></td>
+                        <td><span class="color-dot dot-green"></span> Green</td>
+                        <td>✅ Safe (42.2%)</td>
+                    </tr>
+                    <tr>
+                        <td>75% – 99%</td>
+                        <td><span class="badge badge-warning">Warning</span></td>
+                        <td><span class="color-dot dot-yellow"></span> Yellow</td>
+                        <td>⚠️ Warning (85.8%)</td>
+                    </tr>
+                    <tr>
+                        <td>100%+</td>
+                        <td><span class="badge badge-critical">Critical</span></td>
+                        <td><span class="color-dot dot-red"></span> Red</td>
+                        <td>🔴 Over Limit (117.4%)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════ -->
+        <!-- DIAGRAM 4: ALERT ENGINE FLOWCHART                     -->
+        <!-- ════════════════════════════════════════════════════════ -->
+        <div class="diagram-card">
+            <span class="figure-num">Figure 4</span>
+            <h2>Alert Engine — Processing Flowchart</h2>
+
+            <div class="flow-steps">
+                <div class="flow-step start">▶ Start: check_and_generate_alerts()</div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-step process">Connect to database</div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-step process">Fetch all APIs from database</div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-step process" style="background: #f0e6ff; border-color: #8b5cf6;">🔁 FOR each API:
+                </div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-step process">Calculate total_usage = SUM(access_logs)</div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-step process">Calculate ratio = total_usage ÷ allowed_usage</div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-step process">Delete old alerts for this API</div>
+                <div class="flow-arrow">↓</div>
+
+                <!-- Decision branches shown as a row -->
+                <div
+                    style="display: flex; gap: 16px; align-items: flex-start; width: 100%; justify-content: center; flex-wrap: wrap;">
+                    <div style="text-align: center;">
+                        <div class="flow-branch-label">ratio ≥ 1.0</div>
+                        <div class="flow-arrow">↓</div>
+                        <div class="flow-step alert-c" style="width: 200px;">🔴 Create CRITICAL Alert</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div class="flow-branch-label">ratio ≥ 0.75</div>
+                        <div class="flow-arrow">↓</div>
+                        <div class="flow-step alert-w" style="width: 200px;">⚠️ Create WARNING Alert</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div class="flow-branch-label">ratio < 0.75</div>
+                                <div class="flow-arrow">↓</div>
+                                <div class="flow-step safe-box" style="width: 200px;">✅ No alert needed</div>
+                        </div>
+                    </div>
+
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step process">Save changes to database</div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step end">■ End</div>
+                </div>
+            </div>
+
+            <!-- ════════════════════════════════════════════════════════ -->
+            <!-- DIAGRAM 5: SEQUENCE - SIMULATE USAGE                  -->
+            <!-- ════════════════════════════════════════════════════════ -->
+            <div class="diagram-card">
+                <span class="figure-num">Figure 5</span>
+                <h2>Sequence Diagram — Simulate API Usage</h2>
+
+                <div class="seq-diagram">
+                    <div class="seq-actors">
+                        <div class="seq-actor">👤 User</div>
+                        <div class="seq-actor">🌐 Browser</div>
+                        <div class="seq-actor">🐍 Flask Server</div>
+                        <div class="seq-actor">🗄️ SQLite DB</div>
+                    </div>
+
+                    <div class="seq-step">
+                        <div class="seq-cell"><span class="seq-msg request">1. Click "Simulate"</span></div>
+                        <div class="seq-cell"><span class="seq-arrow">→→→</span></div>
+                        <div class="seq-cell"></div>
+                        <div class="seq-cell"></div>
+                    </div>
+                    <div class="seq-step">
+                        <div class="seq-cell"></div>
+                        <div class="seq-cell"><span class="seq-msg request">2. POST /simulate_usage</span></div>
+                        <div class="seq-cell"><span class="seq-arrow">→→→</span></div>
+                        <div class="seq-cell"></div>
+                    </div>
+                    <div class="seq-step">
+                        <div class="seq-cell"></div>
+                        <div class="seq-cell"></div>
+                        <div class="seq-cell"><span class="seq-msg action">3. INSERT INTO access_logs</span></div>
+                        <div class="seq-cell"><span class="seq-arrow">→→→</span></div>
+                    </div>
+                    <div class="seq-step">
+                        <div class="seq-cell"></div>
+                        <div class="seq-cell"></div>
+                        <div class="seq-cell"><span class="seq-msg action">4. check_and_generate_alerts()</span></div>
+                        <div class="seq-cell"><span class="seq-arrow">→→→</span></div>
+                    </div>
+                    <div class="seq-step">
+                        <div class="seq-cell"></div>
+                        <div class="seq-cell"><span class="seq-arrow">←←←</span></div>
+                        <div class="seq-cell"><span class="seq-msg redirect">5. 302 Redirect → /</span></div>
+                        <div class="seq-cell"></div>
+                    </div>
+                    <div class="seq-step">
+                        <div class="seq-cell"></div>
+                        <div class="seq-cell"><span class="seq-msg request">6. GET / (reload page)</span></div>
+                        <div class="seq-cell"><span class="seq-arrow">→→→</span></div>
+                        <div class="seq-cell"></div>
+                    </div>
+                    <div class="seq-step">
+                        <div class="seq-cell"></div>
+                        <div class="seq-cell"></div>
+                        <div class="seq-cell"><span class="seq-msg action">7. Query all data</span></div>
+                        <div class="seq-cell"><span class="seq-arrow">→→→</span></div>
+                    </div>
+                    <div class="seq-step">
+                        <div class="seq-cell"></div>
+                        <div class="seq-cell"><span class="seq-arrow">←←←</span></div>
+                        <div class="seq-cell"><span class="seq-msg response">8. Rendered HTML</span></div>
+                        <div class="seq-cell"></div>
+                    </div>
+                    <div class="seq-step">
+                        <div class="seq-cell"><span class="seq-msg response">9. Updated Dashboard</span></div>
+                        <div class="seq-cell"><span class="seq-arrow">←←←</span></div>
+                        <div class="seq-cell"></div>
+                        <div class="seq-cell"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ════════════════════════════════════════════════════════ -->
+            <!-- DIAGRAM 6: SEQUENCE - LOAD DASHBOARD                  -->
+            <!-- ════════════════════════════════════════════════════════ -->
+            <div class="diagram-card">
+                <span class="figure-num">Figure 6</span>
+                <h2>Sequence Diagram — Loading the Dashboard</h2>
+
+                <div class="seq-diagram">
+                    <div class="seq-actors">
+                        <div class="seq-actor">👤 User</div>
+                        <div class="seq-actor">🌐 Browser</div>
+                        <div class="seq-actor">🐍 Flask Server</div>
+                        <div class="seq-actor">🗄️ SQLite DB</div>
+                    </div>
+
+                    <div class="seq-step">
+                        <div class="seq-cell"><span class="seq-msg request">1. Open localhost:5000</span></div>
+                        <div class="seq-cell"><span class="seq-arrow">→→→</span></div>
+                        <div class="seq-cell"></div>
+                        <div class="seq-cell"></div>
+                    </div>
+                    <div class="seq-step">
+                        <div class="seq-cell"></div>
+                        <div class="seq-cell"><span class="seq-msg request">2. GET /</span></div>
+                        <div class="seq-cell"><span class="seq-arrow">→→→</span></div>
+                        <div class="seq-cell"></div>
+                    </div>
+                    <div class="seq-step">
+                        <div class="seq-cell"></div>
+                        <div class="seq-cell"></div>
+                        <div class="seq-cell"><span class="seq-msg action">3. Query apis, users, logs, alerts</span>
+                        </div>
+                        <div class="seq-cell"><span class="seq-arrow">→→→</span></div>
+                    </div>
+                    <div class="seq-step">
+                        <div class="seq-cell"></div>
+                        <div class="seq-cell"><span class="seq-arrow">←←←</span></div>
+                        <div class="seq-cell"><span class="seq-msg response">4. HTML Dashboard page</span></div>
+                        <div class="seq-cell"></div>
+                    </div>
+                    <div class="seq-step">
+                        <div class="seq-cell"></div>
+                        <div class="seq-cell"><span class="seq-msg request">5. AJAX: GET /api/chart_data</span></div>
+                        <div class="seq-cell"><span class="seq-arrow">→→→</span></div>
+                        <div class="seq-cell"></div>
+                    </div>
+                    <div class="seq-step">
+                        <div class="seq-cell"></div>
+                        <div class="seq-cell"></div>
+                        <div class="seq-cell"><span class="seq-msg action">6. Query 7-day + per-API data</span></div>
+                        <div class="seq-cell"><span class="seq-arrow">→→→</span></div>
+                    </div>
+                    <div class="seq-step">
+                        <div class="seq-cell"></div>
+                        <div class="seq-cell"><span class="seq-arrow">←←←</span></div>
+                        <div class="seq-cell"><span class="seq-msg response">7. JSON chart data</span></div>
+                        <div class="seq-cell"></div>
+                    </div>
+                    <div class="seq-step">
+                        <div class="seq-cell"><span class="seq-msg response">8. Complete Dashboard</span></div>
+                        <div class="seq-cell"><span class="seq-arrow">←←← Chart.js renders graphs</span></div>
+                        <div class="seq-cell"></div>
+                        <div class="seq-cell"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+</body>
+
+</html>
