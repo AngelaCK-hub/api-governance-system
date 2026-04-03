@@ -6,6 +6,7 @@ import csv
 import io
 from datetime import datetime, timedelta
 from functools import wraps
+# type: ignore
 from flask import Flask, render_template, request, redirect, url_for, jsonify, session, Response
 
 app = Flask(__name__)
@@ -263,7 +264,7 @@ def dashboard():
             new_latency = max(5, api['latency_ms'] + random.randint(-5, 5))
             new_uptime = min(100.0, max(95.0, api['uptime_pct'] + random.uniform(-0.01, 0.01)))
             conn.execute("UPDATE apis SET latency_ms = ?, uptime_pct = ? WHERE id = ?",
-                         (new_latency, round(new_uptime, 2), api['id']))
+                         (new_latency, round(float(new_uptime), 2), api['id']))
     conn.commit()
 
     # Get all APIs with their usage stats
