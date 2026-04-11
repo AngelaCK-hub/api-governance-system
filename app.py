@@ -660,6 +660,8 @@ def simulate_chaos():
         target = random.choice(apis)
         conn.execute("UPDATE apis SET status = 'Offline', latency_ms = 0 WHERE id = ?", (target['id'],))
         msg = f"Simulated outage triggered on {target['name']}."
+        conn.execute("INSERT INTO alerts (type, api_id, status, message) VALUES (?,?,?,?)",
+                     ("critical", target['id'], "new", f"CHAOS OUTAGE: {target['name']} went offline!"))
         log_action("CHAOS_OUTAGE", "api", target['id'], msg)
     elif chaos_type == "spike":
         conn.execute("UPDATE apis SET status = 'Degraded', latency_ms = latency_ms * 5")
@@ -669,16 +671,22 @@ def simulate_chaos():
             u_id = random.choice(users)['id']
             a_id = random.choice(apis)['id']
             conn.execute("INSERT INTO access_logs (user_id, api_id, usage_count) VALUES (?,?,?)",
-                         (u_id, a_id, random.randint(2, 5)))
+                         (u_id, a_id, random.randint(5, 15)))  # Increased payload
         msg = "Simulation: Worldwide traffic spike in progress. Latency high."
         log_action("CHAOS_SPIKE", "system", None, msg)
     else:
         conn.execute("UPDATE apis SET status = 'Online', latency_ms = ABS(RANDOM() % 100) + 10")
         msg = "Systems stabilized. Chaos simulated cleared."
+        conn.execute("DELETE FROM alerts WHERE message LIKE 'CHAOS OUTAGE:%'")
         log_action("CHAOS_RESET", "system", None, msg)
 
     conn.commit()
     conn.close()
+
+    # Trigger threshold alerts after spike
+    if chaos_type == "spike":
+        check_and_generate_alerts()
+
     return jsonify({"success": True, "message": msg})
 
 
