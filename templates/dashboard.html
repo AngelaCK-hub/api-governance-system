@@ -660,8 +660,18 @@
             document.getElementById('sidebar').classList.remove('open');
             document.getElementById('sidebarOverlay').classList.remove('show');
             lucide.createIcons();
+            
+            // Remember the selected section in session storage to prevent jumping on reload
+            sessionStorage.setItem('activeSection', name);
+            
             if (name === 'audit') loadAuditTrail();
         }
+
+        // Initialize the correct section on page load from sessionStorage
+        document.addEventListener('DOMContentLoaded', () => {
+            const lastSection = sessionStorage.getItem('activeSection') || 'dashboard';
+            switchSection(lastSection);
+        });
 
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('open');

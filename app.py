@@ -535,6 +535,8 @@ def get_audit_log():
 @login_required
 def export_apis():
     """Export API registry as CSV."""
+    if session.get("user_role") not in ["Admin", "Manager"]:
+        return redirect(url_for("dashboard"))
     conn = get_db()
     apis = conn.execute("SELECT * FROM apis").fetchall()
     conn.close()
@@ -558,6 +560,8 @@ def export_apis():
 @login_required
 def export_usage():
     """Export usage data as CSV."""
+    if session.get("user_role") not in ["Admin", "Manager"]:
+        return redirect(url_for("dashboard"))
     conn = get_db()
     logs = conn.execute(
         """SELECT access_logs.id, users.name as user_name, apis.name as api_name,
@@ -587,6 +591,8 @@ def export_usage():
 @login_required
 def export_alerts():
     """Export alerts as CSV."""
+    if session.get("user_role") not in ["Admin", "Manager"]:
+        return redirect(url_for("dashboard"))
     conn = get_db()
     alerts = conn.execute(
         """SELECT alerts.id, alerts.type, apis.name as api_name, alerts.status,
