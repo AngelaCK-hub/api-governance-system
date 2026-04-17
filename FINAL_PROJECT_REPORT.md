@@ -109,29 +109,29 @@ Finally, I acknowledge the wider open-source community, especially the developer
 
 ## LIST OF FIGURES
 
-| Figure | Caption |
+| Figure No. | Caption |
 |---|---|
-| Figure 3.1 | System Architecture Diagram — Three-Layer Governance Model |
+| Figure 3.1 | API Governance System: Three-Layer Architecture |
 | Figure 3.2 | Request Processing Flowchart |
-| Figure 3.3 | Entity Relationship (ER) Diagram |
-| Figure 3.4 | Login Page — Screenshot Required |
-| Figure 3.5 | Main Dashboard Overview — Screenshot Required |
-| Figure 3.6 | Services / API Registry View — Screenshot Required |
-| Figure 3.7 | Alerts Panel — Screenshot Required |
-| Figure 3.8 | Audit Trail View — Screenshot Required |
-| Figure 3.9 | Chaos Hub Modal — Screenshot Required |
-| Figure 6.1 | Login Screen — Screenshot Required |
-| Figure 6.2 | Dashboard After Successful Login — Screenshot Required |
-| Figure 6.3 | Register Service Form — Screenshot Required |
-| Figure 6.4 | Alert Resolution Flow — Screenshot Required |
-| Figure 6.5 | CSV Export Confirmation — Screenshot Required |
+| Figure 3.3 | Entity Relationship (ER) Diagram — governance.db |
+| Figure 3.4 | Login Page |
+| Figure 3.5 | Main Dashboard Overview |
+| Figure 3.6 | Services / API Registry View |
+| Figure 3.7 | Alerts Panel |
+| Figure 3.8 | Audit Trail View |
+| Figure 3.9 | Chaos Hub Modal |
+| Figure 6.1 | Login Screen |
+| Figure 6.2 | Dashboard After Successful Login |
+| Figure 6.3 | Register Service Form |
+| Figure 6.4 | Alert Resolution Flow |
+| Figure 6.5 | CSV Export Button |
 
 ---
 ---
 
 ## LIST OF TABLES
 
-| Table | Caption |
+| Table No. | Caption |
 |---|---|
 | Table 2.1 | Functional Requirements |
 | Table 2.2 | Non-Functional Requirements |
@@ -144,6 +144,8 @@ Finally, I acknowledge the wider open-source community, especially the developer
 | Table 4.2 | Test Cases — Data Management |
 | Table 4.3 | Test Cases — Chaos Hub and Alert Engine |
 | Table 4.4 | Test Results Summary |
+| Table 5.1 | Tools and Technologies Used |
+| Table 5.2 | Risks and Limitations |
 
 ---
 ---
@@ -238,7 +240,7 @@ The API Governance System was developed as a functional prototype intended to de
 
 **Included:**
 - Web-based dashboard accessible via standard browser over HTTP
-- Registration and management of up to practical numbers of API records
+- Registration and management of API records with configurable thresholds
 - Simulated traffic logging using synthetic data generation
 - Automated usage-based alert classification (Warning and Critical)
 - Role-based access control for three user tiers: Admin, Manager, and Developer
@@ -276,19 +278,19 @@ The development of this system was justified on the following grounds:
 
 ## 2.1 Functional Requirements
 
-The following functional requirements defined the expected behaviors of the API Governance System:
+The following functional requirements defined the expected behaviors of the API Governance System. All requirements are written using the standard "The system shall…" format.
 
 **Table 2.1 — Functional Requirements**
 
 | Ref | Requirement | Description |
-|---|---|---|
+|:---|:---|:---|
 | FR-01 | User Authentication | The system shall allow registered users to authenticate via a login page using a user selection mechanism. Administrators shall additionally be required to supply a hashed PIN credential. |
 | FR-02 | API Registration | The system shall allow authenticated Administrators to register new API endpoints with associated metadata including name, description, usage limit, and cost per call. |
 | FR-03 | API Editing | The system shall allow Administrators to modify the configuration of any registered API record, including its name, description, usage threshold, and cost parameters. |
 | FR-04 | API Deletion | The system shall allow Administrators to permanently remove an API record along with all dependent access logs and associated alerts. |
 | FR-05 | Usage Logging | The system shall record all API usage simulation events against a specific API and user account, including a timestamp and call count. |
 | FR-06 | Dashboard Metrics | The system shall display aggregate system metrics on the Overview dashboard, including total registered APIs, total team members, total API calls, and active alert count. |
-| FR-07 | Usage Trend Visualization | The system shall render a 7-day line chart illustrating daily aggregate API call volume using Chart.js. |
+| FR-07 | Usage Trend Visualization | The system shall render a 7-day line chart illustrating daily aggregate API call volume. |
 | FR-08 | Traffic Distribution Visualization | The system shall render a doughnut chart illustrating the proportional API call distribution across all registered services. |
 | FR-09 | Alert Generation | The system shall automatically evaluate the usage-to-limit ratio for each API and generate Warning alerts at 75% capacity and Critical alerts at 100% capacity. |
 | FR-10 | Alert Resolution | The system shall allow Administrators and Managers to mark active alerts as resolved. |
@@ -305,7 +307,7 @@ The following functional requirements defined the expected behaviors of the API 
 **Table 2.2 — Non-Functional Requirements**
 
 | Ref | Category | Requirement |
-|---|---|---|
+|:---|:---|:---|
 | NFR-01 | Performance | The dashboard shall load within 3 seconds under normal network conditions. Chart data endpoints shall return JSON responses within 1 second of being called. |
 | NFR-02 | Security | All administrative actions shall be protected behind role verification middleware. Sensitive credentials (Admin PIN) shall be stored exclusively in SHA-256 hashed form and never transmitted in plaintext. |
 | NFR-03 | Scalability | The system shall support the addition of new APIs and users without requiring code changes. The underlying SQLite database shall support practical data volumes for a prototype deployment. |
@@ -321,114 +323,27 @@ The following functional requirements defined the expected behaviors of the API 
 
 ## 3.1 Architecture Design
 
-The API Governance System was built on a three-layer architectural model that clearly separated concerns between data ingestion, business logic enforcement, and user presentation.
+The API Governance System was built on a three-layer architectural model that clearly separated concerns between data storage, business logic enforcement, and user presentation.
 
-**Layer 1 — Ingestion Layer**
+**Layer 1 — Presentation Layer:** This layer consisted of the Jinja2-powered HTML templates rendered by Flask, enhanced with Vanilla JavaScript for client-side interactivity. Chart.js was integrated for data visualization. The UI implemented a single-page application pattern using `sessionStorage` to preserve the user's active tab across server-side redirects.
 
-This layer was responsible for receiving all incoming HTTP requests from the browser client. It was implemented using Flask's routing decorators, which mapped URL patterns to Python handler functions. The `@login_required` decorator served as a gateway interceptor at this layer, ensuring that no request from an unauthenticated user could reach the application's business logic.
+**Layer 2 — Governance Layer:** This was the core intelligence layer of the system. It handled validation through role verification checks, business logic via functions such as `check_and_generate_alerts()` and `log_action()`, and mediated all database read and write operations through parameterized queries to prevent SQL injection vulnerabilities.
 
-**Layer 2 — Governance Layer**
+**Layer 3 — Data Layer:** This layer consisted of the SQLite database (`governance.db`) and its five inter-related tables, persisted as a single file on the host server's file system.
 
-This was the core intelligence layer of the system. It handled:
-- **Validation:** Role verification checks ensured that only appropriately credentialed users could trigger sensitive operations (e.g., only Admins could delete APIs or access Chaos Hub; only Admins/Managers could export data).
-- **Business Logic:** Functions such as `check_and_generate_alerts()`, `log_action()`, and `seed_sample_data()` resided in this layer.
-- **Data Persistence:** All read and write operations against the SQLite database were mediated through parameterized query helpers to prevent SQL injection vulnerabilities.
+![Figure 3.1 — API Governance System: Three-Layer Architecture](figures/fig3_1_architecture.png)
 
-**Layer 3 — Presentation Layer**
-
-This layer consisted of the Jinja2-powered HTML templates rendered by Flask, enhanced with Vanilla JavaScript for client-side interactivity. Chart.js was integrated for data visualization. The UI implemented a single-page application pattern using `sessionStorage` to preserve the user's active tab across server-side redirects.
-
-```
-┌─────────────────────────────────────────────────────┐
-│                PRESENTATION LAYER                   │
-│       HTML Templates / CSS / JavaScript / Charts    │
-└─────────────────────┬───────────────────────────────┘
-                      │
-┌─────────────────────▼───────────────────────────────┐
-│                GOVERNANCE LAYER                     │
-│   Flask Routes / RBAC Middleware / Alert Engine     │
-│   Audit Logger / Chaos Simulation / Export Engine  │
-└─────────────────────┬───────────────────────────────┘
-                      │
-┌─────────────────────▼───────────────────────────────┐
-│                INGESTION LAYER (DATA)               │
-│        SQLite Database (governance.db)              │
-│   apis | users | access_logs | alerts | audit_log  │
-└─────────────────────────────────────────────────────┘
-
-    [Figure 3.1 — System Architecture Diagram]
-```
-
-> **📌 SCREENSHOT REQUIRED HERE — Figure 3.1:** Insert a clean architecture diagram image if available, or retain the ASCII representation above for the final document.
+*Figure 3.1 — API Governance System: Three-Layer Architecture*
 
 ---
 
 ## 3.2 Process Modelling
 
-The following flowchart describes the core request processing lifecycle within the system:
+The following flowchart describes the complete request processing lifecycle within the system, from initial browser access through to action execution and dashboard refresh.
 
-```
-                    ┌─────────────┐
-                    │  User opens │
-                    │   browser   │
-                    └──────┬──────┘
-                           │
-                    ┌──────▼──────┐
-                    │  Login Page │
-                    │  Displayed  │
-                    └──────┬──────┘
-                           │
-               ┌───────────▼───────────┐
-               │  User selects name    │
-               │  and enters PIN (if   │
-               │  Admin)               │
-               └───────────┬───────────┘
-                           │
-          ┌────────────────▼────────────────┐
-          │  Credentials verified against   │
-          │  users table + SHA-256 PIN hash │
-          └───────┬──────────────┬──────────┘
-                  │ VALID        │ INVALID
-         ┌────────▼────┐   ┌────▼──────────────┐
-         │  Session    │   │  Return to Login  │
-         │  Created    │   │  with Error Msg   │
-         └────┬────────┘   └───────────────────┘
-              │
-     ┌────────▼────────┐
-     │  Dashboard      │
-     │  Rendered       │
-     └────────┬────────┘
-              │
-     ┌────────▼─────────────────────────┐
-     │  User performs action            │
-     │  (Register API, Simulate, etc.)  │
-     └────────┬─────────────────────────┘
-              │
-    ┌─────────▼──────────┐
-    │  RBAC Check:       │
-    │  Role permitted?   │
-    └──────┬──────┬──────┘
-           │ YES  │ NO
-    ┌──────▼──┐ ┌─▼──────────────┐
-    │ Execute │ │ Redirect to    │
-    │ Action  │ │ Dashboard      │
-    └──────┬──┘ └────────────────┘
-           │
-    ┌──────▼──────────────────┐
-    │  Database Updated       │
-    │  Audit Log Written      │
-    │  Alerts Checked         │
-    └──────┬──────────────────┘
-           │
-    ┌──────▼──────────────────┐
-    │  Dashboard Refreshed    │
-    │  Session tab restored   │
-    └─────────────────────────┘
+![Figure 3.2 — Request Processing Flowchart](figures/fig3_2_flowchart.png)
 
-    [Figure 3.2 — Request Processing Flowchart]
-```
-
-> **📌 SCREENSHOT REQUIRED HERE — Figure 3.2:** Insert a professionally drawn flowchart if created in a diagram tool (e.g., draw.io or Lucidchart).
+*Figure 3.2 — Request Processing Flowchart*
 
 ---
 
@@ -436,149 +351,99 @@ The following flowchart describes the core request processing lifecycle within t
 
 The system's data was persisted in a single SQLite database file (`governance.db`) containing five related tables. The schema was designed to minimize redundancy while supporting efficient querying across the primary reporting functions.
 
-### Table 3.1 — `apis` Table
+**Table 3.1 — Database Table: apis**
 
 | Column | Data Type | Constraint | Description |
-|---|---|---|---|
-| id | INTEGER | PRIMARY KEY, AUTOINCREMENT | Unique identifier |
-| name | TEXT | NOT NULL | API display name |
-| description | TEXT | — | Human-readable description |
-| allowed_usage | INTEGER | DEFAULT 10 | Maximum acceptable call count before alerting |
-| cost_per_call | REAL | DEFAULT 0.05 | Monetary cost per API invocation |
-| status | TEXT | DEFAULT 'Online' | Operational status (Online, Degraded, Offline) |
+|:---|:---|:---|:---|
+| id | INTEGER | PRIMARY KEY, AUTOINCREMENT | Unique record identifier |
+| name | TEXT | NOT NULL | API display name (e.g., Payments-v1) |
+| description | TEXT | — | Human-readable description of API function |
+| allowed_usage | INTEGER | DEFAULT 10 | Maximum acceptable call count before alert triggers |
+| cost_per_call | REAL | DEFAULT 0.05 | Monetary cost per API invocation in USD |
+| status | TEXT | DEFAULT 'Online' | Operational state: Online, Degraded, or Offline |
 | latency_ms | INTEGER | DEFAULT 45 | Simulated response latency in milliseconds |
 | uptime_pct | REAL | DEFAULT 99.9 | Simulated uptime percentage |
 
-### Table 3.2 — `users` Table
+**Table 3.2 — Database Table: users**
 
 | Column | Data Type | Constraint | Description |
-|---|---|---|---|
-| id | INTEGER | PRIMARY KEY, AUTOINCREMENT | Unique identifier |
-| name | TEXT | NOT NULL | Full name of team member |
-| role | TEXT | NOT NULL | Role assignment (Admin, Manager, Developer) |
+|:---|:---|:---|:---|
+| id | INTEGER | PRIMARY KEY, AUTOINCREMENT | Unique record identifier |
+| name | TEXT | NOT NULL | Full name of the team member |
+| role | TEXT | NOT NULL | Assigned role: Admin, Manager, or Developer |
 
-### Table 3.3 — `access_logs` Table
-
-| Column | Data Type | Constraint | Description |
-|---|---|---|---|
-| id | INTEGER | PRIMARY KEY, AUTOINCREMENT | Unique identifier |
-| user_id | INTEGER | FOREIGN KEY → users.id | The acting team member |
-| api_id | INTEGER | FOREIGN KEY → apis.id | The targeted API |
-| timestamp | DATETIME | DEFAULT CURRENT_TIMESTAMP | When the call was made |
-| usage_count | INTEGER | DEFAULT 1 | Number of calls in this log entry |
-
-### Table 3.4 — `alerts` Table
+**Table 3.3 — Database Table: access_logs**
 
 | Column | Data Type | Constraint | Description |
-|---|---|---|---|
-| id | INTEGER | PRIMARY KEY, AUTOINCREMENT | Unique identifier |
-| type | TEXT | NOT NULL | Alert severity: 'warning' or 'critical' |
-| api_id | INTEGER | FOREIGN KEY → apis.id | API triggering the alert |
-| user_id | INTEGER | FOREIGN KEY → users.id | User linked (if applicable) |
-| status | TEXT | DEFAULT 'new' | Alert state: 'new' or 'resolved' |
+|:---|:---|:---|:---|
+| id | INTEGER | PRIMARY KEY, AUTOINCREMENT | Unique record identifier |
+| user_id | INTEGER | FOREIGN KEY → users(id) | References the acting team member |
+| api_id | INTEGER | FOREIGN KEY → apis(id) | References the targeted API |
+| timestamp | DATETIME | DEFAULT CURRENT_TIMESTAMP | Date and time the call was recorded |
+| usage_count | INTEGER | DEFAULT 1 | Number of API calls in this log entry |
+
+**Table 3.4 — Database Table: alerts**
+
+| Column | Data Type | Constraint | Description |
+|:---|:---|:---|:---|
+| id | INTEGER | PRIMARY KEY, AUTOINCREMENT | Unique record identifier |
+| type | TEXT | NOT NULL | Alert severity level: 'warning' or 'critical' |
+| api_id | INTEGER | FOREIGN KEY → apis(id) | API that triggered the alert |
+| user_id | INTEGER | FOREIGN KEY → users(id) | User linked to the alert (if applicable) |
+| status | TEXT | DEFAULT 'new' | Current alert state: 'new' or 'resolved' |
 | message | TEXT | — | Human-readable alert description |
-| timestamp | DATETIME | DEFAULT CURRENT_TIMESTAMP | Alert generation time |
+| timestamp | DATETIME | DEFAULT CURRENT_TIMESTAMP | Date and time the alert was generated |
 
-### Table 3.5 — `audit_log` Table
+**Table 3.5 — Database Table: audit_log**
 
 | Column | Data Type | Constraint | Description |
-|---|---|---|---|
-| id | INTEGER | PRIMARY KEY, AUTOINCREMENT | Unique identifier |
-| action | TEXT | NOT NULL | Event type (LOGIN, CREATE_API, CHAOS_SPIKE, etc.) |
-| entity_type | TEXT | — | Object type affected (api, user, system) |
-| entity_id | INTEGER | — | ID of affected entity |
-| user_id | INTEGER | — | User who triggered the action |
-| user_name | TEXT | — | Display name of acting user |
-| details | TEXT | — | Extended description of the event |
-| timestamp | DATETIME | DEFAULT CURRENT_TIMESTAMP | Event timestamp |
+|:---|:---|:---|:---|
+| id | INTEGER | PRIMARY KEY, AUTOINCREMENT | Unique record identifier |
+| action | TEXT | NOT NULL | Event type (e.g., LOGIN, CREATE_API, CHAOS_SPIKE) |
+| entity_type | TEXT | — | Type of object affected (api, user, system) |
+| entity_id | INTEGER | — | ID of the affected entity |
+| user_id | INTEGER | — | ID of the user who triggered the action |
+| user_name | TEXT | — | Display name of the acting user |
+| details | TEXT | — | Extended human-readable description of the event |
+| timestamp | DATETIME | DEFAULT CURRENT_TIMESTAMP | Date and time the event was recorded |
 
 **Entity Relationship Diagram:**
 
-```
-     ┌────────────┐         ┌─────────────────┐
-     │   users    │         │      apis        │
-     │────────────│         │─────────────────│
-     │ id (PK)    │         │ id (PK)          │
-     │ name       │         │ name             │
-     │ role       │         │ description      │
-     └──────┬─────┘         │ allowed_usage    │
-            │               │ cost_per_call    │
-            │               │ status           │
-            │               │ latency_ms       │
-            │               │ uptime_pct       │
-            │               └───────┬─────────┘
-            │                       │
-            │      ┌────────────────┘
-            │      │
-     ┌──────▼──────▼──────┐
-     │    access_logs      │
-     │─────────────────────│
-     │ id (PK)             │
-     │ user_id (FK)        │
-     │ api_id  (FK)        │
-     │ timestamp           │
-     │ usage_count         │
-     └─────────────────────┘
+The following diagram illustrates the relationships between all five database tables in the `governance.db` database, showing primary keys (PK), foreign keys (FK), and cardinality.
 
-     ┌────────────────────────┐
-     │        alerts          │
-     │────────────────────────│
-     │ id (PK)                │
-     │ api_id (FK → apis)     │
-     │ user_id (FK → users)   │
-     │ type                   │
-     │ status                 │
-     │ message                │
-     │ timestamp              │
-     └────────────────────────┘
+![Figure 3.3 — Entity Relationship Diagram (governance.db)](figures/fig3_3_er_diagram.png)
 
-     ┌────────────────────────┐
-     │       audit_log        │
-     │────────────────────────│
-     │ id (PK)                │
-     │ action                 │
-     │ entity_type            │
-     │ entity_id              │
-     │ user_id                │
-     │ user_name              │
-     │ details                │
-     │ timestamp              │
-     └────────────────────────┘
-
-    [Figure 3.3 — Entity Relationship (ER) Diagram]
-```
-
-> **📌 SCREENSHOT REQUIRED HERE — Figure 3.3:** Insert an ER diagram created using draw.io, dbdiagram.io, or any ER tool for a professional appearance.
+*Figure 3.3 — Entity Relationship Diagram (governance.db)*
 
 ---
 
 ## 3.4 User Interface Design
 
-The system's front end was developed as a responsive, dark-mode single-page layout. The interface comprised five primary views accessible from a persistent sidebar navigation panel.
+The system's front end was developed as a responsive, dark-mode single-page layout. The interface comprised five primary views accessible from a persistent sidebar navigation panel. The key UI screens are described below, with screenshots from the deployed system.
 
-**Login Page:** Presented users with a dropdown selector listing all registered team members. Administrators were additionally required to input a numeric PIN, which was validated server-side against a SHA-256 hash.
+**Login Page:** Presented users with a dropdown selector listing all registered team members. Administrators were additionally required to input a numeric PIN, validated server-side against a SHA-256 hash.
 
-> **📌 SCREENSHOT REQUIRED HERE — Figure 3.4:** Insert a screenshot of the Login Page.
+> **[INSERT SCREENSHOT — Figure 3.4: Login Page]**
 
 **Overview Dashboard:** The primary landing page after authentication, displaying four KPI cards (Total Services, Team Members, Total API Calls, Active Alerts), a real-time service health grid, a 7-day line chart for usage trends, and a doughnut chart showing traffic distribution by service.
 
-> **📌 SCREENSHOT REQUIRED HERE — Figure 3.5:** Insert a screenshot of the Overview Dashboard.
+> **[INSERT SCREENSHOT — Figure 3.5: Main Dashboard Overview]**
 
-**Services Section:** A structured table view of all registered APIs with sortable columns for status, call volumes, latency, cost per call, and usage load bar. Administrators additionally see an inline form for registering new services.
+**Services Section:** A structured table view of all registered APIs with columns for status, call volumes, latency, cost per call, and usage load bar. Administrators additionally see an inline form for registering new services.
 
-> **📌 SCREENSHOT REQUIRED HERE — Figure 3.6:** Insert a screenshot of the Services / API Registry view.
+> **[INSERT SCREENSHOT — Figure 3.6: Services / API Registry View]**
 
-**Alerts Section:** (Admin/Manager only) A full feed of system-generated warnings and critical alerts with timestamps, messages, and resolution controls.
+**Alerts Section** *(Admin/Manager only):* A full feed of system-generated warnings and critical alerts with timestamps, messages, and resolution controls.
 
-> **📌 SCREENSHOT REQUIRED HERE — Figure 3.7:** Insert a screenshot of the Alerts panel.
+> **[INSERT SCREENSHOT — Figure 3.7: Alerts Panel]**
 
-**Audit Trail Section:** (Admin/Manager only) An asynchronously loaded table of all system events drawn from the audit_log table via a dedicated API endpoint.
+**Audit Trail Section** *(Admin/Manager only):* An asynchronously loaded table of all system events drawn from the `audit_log` table.
 
-> **📌 SCREENSHOT REQUIRED HERE — Figure 3.8:** Insert a screenshot of the Audit Trail.
+> **[INSERT SCREENSHOT — Figure 3.8: Audit Trail View]**
 
-**Chaos Hub Modal:** (Admin only) An overlay panel accessible from the topbar providing three simulation actions: Traffic Spike, Service Outage, and Stabilize.
+**Chaos Hub Modal** *(Admin only):* An overlay panel accessible from the topbar providing three simulation actions: Traffic Spike, Service Outage, and Stabilize.
 
-> **📌 SCREENSHOT REQUIRED HERE — Figure 3.9:** Insert a screenshot of the Chaos Hub modal.
+> **[INSERT SCREENSHOT — Figure 3.9: Chaos Hub Modal]**
 
 ---
 
@@ -601,46 +466,55 @@ Three categories of testing were applied to validate the API Governance System:
 **Table 4.1 — Authentication and RBAC Test Cases**
 
 | Test ID | Scenario | Input | Expected Output | Result |
-|---|---|---|---|---|
+|:---|:---|:---|:---|:---|
 | TC-01 | Valid Admin Login | Select "Angela Kasoha", PIN = 1234 | Redirect to Dashboard. Chaos button visible. All nav tabs present. | Pass |
 | TC-02 | Invalid Admin PIN | Select "Angela Kasoha", PIN = 9999 | Login page reloads with "Invalid Administrator PIN" error message. | Pass |
-| TC-03 | Standard Developer Login | Select "Alice Mwangi", no PIN | Redirect to Dashboard. Team, Alerts, Audit Trail, and Chaos tabs are hidden. | Pass |
-| TC-04 | Direct Export Access by Developer | Navigate to `/export/alerts` as Developer | Server redirects user to `/` without delivering file. | Pass |
-| TC-05 | Unauthenticated Route Access | Navigate to `/` without session | Redirected to `/login` page. | Pass |
+| TC-03 | Standard Developer Login | Select "Alice Mwangi", no PIN | Redirect to Dashboard. Team, Alerts, Audit Trail, and Chaos tabs hidden. | Pass |
+| TC-04 | Direct Export Access by Developer | Navigate to `/export/alerts` while logged in as Developer | Server redirects user to `/` without delivering the file. | Pass |
+| TC-05 | Unauthenticated Route Access | Navigate to `/` without an active session | Redirected automatically to `/login` page. | Pass |
 
 **Table 4.2 — Data Management Test Cases**
 
 | Test ID | Scenario | Input | Expected Output | Result |
-|---|---|---|---|---|
-| TC-06 | Register New API | Name: BrowserTestAPI, Limit: 5, Cost: $0.10 | New API appears in Services registry immediately after form submission. | Pass |
-| TC-07 | Edit Existing API | Change BrowserTestAPI usage limit to 50 | Updated record reflects new limit in table view. | Pass |
-| TC-08 | Delete API (cascade) | Delete BrowserTestAPI | API removed from registry; no orphaned records in access_logs or alerts. | Pass |
-| TC-09 | Add Team Member | Name: Test User, Role: Developer | User appears in Team Directory with correct role tag. | Pass |
-| TC-10 | Tab Persistence on Action | Resolve an alert from Alerts tab | Page refreshes and returns user to Alerts tab (not Overview). | Pass |
+|:---|:---|:---|:---|:---|
+| TC-06 | Register New API | Name: BrowserTestAPI, Usage Limit: 5, Cost: $0.10 | New API appears in Services registry table immediately after form submission. | Pass |
+| TC-07 | Edit Existing API | Change BrowserTestAPI usage limit to 50 | Updated record reflects new limit in the table view without errors. | Pass |
+| TC-08 | Delete API with cascade | Delete BrowserTestAPI | API removed from registry; no orphaned records left in access_logs or alerts tables. | Pass |
+| TC-09 | Add Team Member | Name: Test User, Role: Developer | User appears in Team Directory with the correct role tag. | Pass |
+| TC-10 | Tab Persistence on Action | Resolve an alert from the Alerts tab | Page refreshes and returns user to Alerts tab rather than defaulting to Overview. | Pass |
 
 **Table 4.3 — Chaos Hub and Alert Engine Test Cases**
 
 | Test ID | Scenario | Input | Expected Output | Result |
-|---|---|---|---|---|
+|:---|:---|:---|:---|:---|
 | TC-11 | Usage-Threshold Warning Alert | Simulate traffic pushing an API to 78% of its limit | Warning-type alert generated and visible in Alerts tab. | Pass |
-| TC-12 | Critical Alert on Limit Exceeded | Simulate traffic pushing an API past 100% of its limit | Critical-type alert generated with appropriate message. | Pass |
-| TC-13 | Traffic Spike (Chaos) | Click "Traffic Spike" in Chaos Hub | Dashboard latency values increase. New threshold alerts generated. Toast notification displayed. | Pass |
-| TC-14 | Service Outage (Chaos) | Click "Service Outage" in Chaos Hub | A randomly selected API status changes to "Offline". CHAOS OUTAGE alert inserted. | Pass |
-| TC-15 | Stabilize (Chaos) | Click "Stabilize" in Chaos Hub | All APIs return to "Online" status. CHAOS OUTAGE alerts cleared. Legitimate alerts retained. | Pass |
+| TC-12 | Critical Alert on Limit Exceeded | Simulate traffic pushing an API past 100% of its limit | Critical-type alert generated with appropriate descriptive message. | Pass |
+| TC-13 | Traffic Spike via Chaos Hub | Click "Traffic Spike" in Chaos Hub modal | Latency values increase system-wide. New threshold alerts generated. Toast notification shown. | Pass |
+| TC-14 | Service Outage via Chaos Hub | Click "Service Outage" in Chaos Hub modal | A randomly selected API status changes to "Offline". A CHAOS OUTAGE Critical alert is inserted. | Pass |
+| TC-15 | Stabilize via Chaos Hub | Click "Stabilize" in Chaos Hub modal | All APIs return to "Online" status. CHAOS OUTAGE alerts cleared. Legitimate user alerts retained. | Pass |
 
 ---
 
 ## 4.3 Results and Observations
 
+**Table 4.4 — Test Results Summary**
+
+| Category | Total Tests | Passed | Failed | Pass Rate |
+|:---|:---|:---|:---|:---|
+| Authentication & RBAC | 5 | 5 | 0 | 100% |
+| Data Management | 5 | 5 | 0 | 100% |
+| Chaos Hub & Alert Engine | 5 | 5 | 0 | 100% |
+| **Overall** | **15** | **15** | **0** | **100%** |
+
 All fifteen defined test cases produced the expected outcomes across both the local development environment and the live PythonAnywhere deployment. The system performed consistently across tested scenarios without producing server errors (HTTP 500) or unhandled exceptions.
 
-The following observations were noted during testing:
+The following observations were recorded during the testing process:
 
-1. **Tab persistence improvement:** Prior to implementing `sessionStorage`, users were consistently redirected to the Overview tab after any form submission. After the fix, the system reliably restored the correct tab on reload, significantly improving usability for Alert resolution workflows.
+1. **Tab persistence improvement:** Prior to implementing `sessionStorage`, users were consistently redirected to the Overview tab after any form submission. After the fix was applied, the system reliably restored the correct active tab on reload, significantly improving usability for Alert resolution workflows.
 
-2. **Chaos Hub alert propagation:** The initial implementation of the Chaos Hub did not invoke `check_and_generate_alerts()` after a traffic spike. This was identified through TC-13 and corrected. Subsequent tests confirmed that alerts were correctly generated following Chaos events.
+2. **Chaos Hub alert propagation:** The initial implementation of the Chaos Hub did not invoke `check_and_generate_alerts()` after a traffic spike. This was identified through TC-13, corrected by chaining the function call post-spike execution, and re-tested successfully.
 
-3. **Export security:** TC-04 confirmed that the permission fix applied to export routes was effective. Developer accounts could not directly access any CSV export endpoint.
+3. **Export security enforcement:** TC-04 confirmed that the RBAC fix applied to export routes was effective. Developer accounts could not directly access any CSV export endpoint by manipulating the URL.
 
 ---
 
@@ -648,37 +522,39 @@ The following observations were noted during testing:
 
 ## 5.1 Tools and Technologies Used
 
-| Tool / Technology | Role in System |
-|---|---|
-| **Python 3.10** | Core programming language for all backend logic |
-| **Flask 3.0.0** | Lightweight WSGI web framework for routing and request handling |
-| **SQLite3** | Serverless, file-based relational database engine |
-| **Jinja2** | Server-side HTML templating integrated with Flask |
-| **HTML5 / CSS3** | Frontend markup and styling |
-| **JavaScript (Vanilla)** | Client-side interactivity, tab switching, and fetch API calls |
-| **Chart.js** | JavaScript library for rendering line and doughnut usage charts |
-| **Lucide Icons** | SVG icon library used throughout the interface |
-| **Gunicorn 21.2.0** | Production WSGI server used on PythonAnywhere |
-| **GitHub** | Version control and remote code repository |
-| **PythonAnywhere** | Cloud hosting platform for production deployment |
+**Table 5.1 — Tools and Technologies Used**
+
+| Tool / Technology | Version | Role in System |
+|:---|:---|:---|
+| Python | 3.10 | Core programming language for all backend logic |
+| Flask | 3.0.0 | Lightweight WSGI web framework for routing and request handling |
+| SQLite3 | Built-in | Serverless, file-based relational database engine |
+| Jinja2 | Bundled with Flask | Server-side HTML templating integrated with Flask |
+| HTML5 / CSS3 | — | Frontend markup, dark-mode design system, and styling |
+| JavaScript (Vanilla) | — | Client-side interactivity, tab switching, and Fetch API calls |
+| Chart.js | CDN | JavaScript library for rendering line and doughnut usage charts |
+| Lucide Icons | CDN | SVG icon library used throughout the interface |
+| Gunicorn | 21.2.0 | Production WSGI HTTP server used on PythonAnywhere |
+| GitHub | — | Version control platform and remote code repository |
+| PythonAnywhere | Free Tier | Cloud hosting platform for production deployment |
 
 ---
 
 ## 5.2 Deployment Architecture
 
-The system was deployed using the following steps:
+The system was deployed using the following sequential steps:
 
-1. **Version Control:** All source code was committed and pushed to a GitHub repository at `https://github.com/AngelaCK-hub/api-governance-system` throughout the development lifecycle, ensuring version history was preserved.
+1. **Version Control:** All source code was committed and pushed to a GitHub repository at `https://github.com/AngelaCK-hub/api-governance-system` throughout the development lifecycle, ensuring a complete version history was preserved.
 
-2. **Virtual Environment Setup:** On PythonAnywhere, a dedicated Python 3.10 virtual environment was created using `mkvirtualenv`. The `requirements.txt` file was used to install Flask and Gunicorn within this isolated environment.
+2. **Virtual Environment Setup:** On PythonAnywhere, a dedicated Python 3.10 virtual environment was created using the `mkvirtualenv` command. The `requirements.txt` file was used to install Flask and Gunicorn within this isolated environment, avoiding conflicts with the system Python installation.
 
-3. **Database Initialization:** The `init_db()` and `seed_sample_data()` functions ran automatically on the first execution of `app.py` on the server, creating all required tables and populating them with representative sample data.
+3. **Database Initialization:** The `init_db()` and `seed_sample_data()` functions ran automatically on the first execution of `app.py` on the server, creating all required tables and populating them with representative sample data without any manual database setup.
 
-4. **WSGI Configuration:** A custom WSGI file was configured on PythonAnywhere to set the correct working directory path (`/home/AngelaCK/api-governance-system`), append it to Python's module search path, and import the Flask application object for Gunicorn to serve.
+4. **WSGI Configuration:** A custom WSGI file was configured on PythonAnywhere to set the correct working directory path to `/home/AngelaCK/api-governance-system`, append it to Python's module search path, and import the Flask application object for Gunicorn to serve.
 
-5. **Live Deployment:** The application was successfully deployed and made accessible at `http://angelack.pythonanywhere.com`.
+5. **Live Deployment:** The application was successfully deployed and made publicly accessible at `http://angelack.pythonanywhere.com`.
 
-6. **Update workflow:** Subsequent fixes (export permissions, tab persistence, Chaos Hub alert propagation) were committed and pushed to GitHub, then pulled to the production server using `git pull` in the PythonAnywhere Bash console, followed by a manual web app reload.
+6. **Update Workflow:** Subsequent fixes were committed and pushed to GitHub, then applied to the production server using `git pull` in the PythonAnywhere Bash console, followed by a manual web application reload.
 
 ---
 
@@ -690,19 +566,22 @@ The API Governance System, as built, has direct applicability in the following o
 
 **Microservices development teams** can use the system as an internal service registry and health board, tracking which backend services are healthy, degraded, or offline and immediately identifying the source of traffic anomalies.
 
-**IT governance and compliance officers** can leverage the immutable audit trail for regulatory reporting, particularly in environments subject to data protection legislation, demonstrating a documented chain of custody for API usage events.
+**IT governance and compliance officers** can leverage the immutable audit trail for regulatory reporting, particularly in environments subject to data protection legislation, demonstrating a documented chain of custody for all API usage events.
 
 ---
 
 ## 5.4 Risks and Limitations
 
-| Risk / Limitation | Description | Mitigation |
-|---|---|---|
-| Limited scalability | SQLite is not suitable for concurrent high-write production workloads | Migrate to PostgreSQL for production use |
-| No real API integration | The system monitors simulated usage, not live API gateway traffic | Integrate with a real API gateway via webhooks |
-| Single-server deployment | PythonAnywhere free tier limits concurrent connections | Upgrade to paid tier or migrate to cloud provider |
-| PIN-based Admin auth | SHA-256 PIN authentication is adequate for a prototype but insufficient for enterprise use | Replace with JWT-based authentication or OAuth 2.0 |
-| No anomaly detection | The alerting engine uses fixed thresholds, not dynamic anomaly detection | Introduce statistical or ML-based anomaly detection models |
+**Table 5.2 — Risks and Limitations**
+
+| Risk / Limitation | Description | Proposed Mitigation |
+|:---|:---|:---|
+| Limited database scalability | SQLite is not suitable for concurrent high-write production workloads | Migrate to PostgreSQL for production deployment |
+| No live API integration | The system monitors simulated usage, not live API gateway traffic | Integrate with a real API gateway via webhooks or middleware |
+| Single-server deployment | PythonAnywhere free tier limits concurrent connections and CPU | Upgrade to paid tier or migrate to a cloud provider (AWS, GCP) |
+| PIN-based Admin authentication | SHA-256 PIN authentication is adequate for a prototype but insufficient for enterprise use | Replace with JWT-based authentication or OAuth 2.0 |
+| Fixed-threshold alerting | The alert engine uses static limits, not dynamic anomaly detection | Introduce statistical or machine-learning-based anomaly detection |
+| No real-time streaming | Data refreshes on a 30-second polling cycle, not true real-time streams | Implement WebSocket-based live updates |
 
 ---
 
@@ -712,7 +591,7 @@ The API Governance System, as built, has direct applicability in the following o
 
 The system was accessible at the following URL: `http://angelack.pythonanywhere.com`
 
-To access the system from a local development environment, the administrator ran the following command:
+To access the system from a local development environment, the following command was executed in the project directory:
 
 ```
 python app.py
@@ -720,12 +599,12 @@ python app.py
 
 The application was then available at `http://127.0.0.1:5000`.
 
-> **📌 SCREENSHOT REQUIRED HERE — Figure 6.1:** Insert a screenshot of the login screen as viewed in the browser.
+> **[INSERT SCREENSHOT — Figure 6.1: Login Screen]**
 
 **Login Procedure:**
 1. Open the application URL in a web browser.
 2. From the dropdown labelled "Select your name", choose the appropriate team member account.
-3. If the selected account holds the Administrator role, a PIN input field appears. Enter the Administrator PIN.
+3. If the selected account holds the Administrator role, a PIN input field will appear. Enter the Administrator PIN.
 4. Click the **Sign In** button.
 5. Upon successful authentication, the user is redirected to the main dashboard.
 
@@ -733,10 +612,11 @@ The application was then available at `http://127.0.0.1:5000`.
 
 ## 6.2 Navigating the Dashboard
 
-> **📌 SCREENSHOT REQUIRED HERE — Figure 6.2:** Insert a screenshot of the main dashboard after logging in as Administrator.
+> **[INSERT SCREENSHOT — Figure 6.2: Dashboard After Successful Login]**
 
 The sidebar on the left-hand side contained the following navigation items:
-- **Overview** — Summary statistics and charts
+
+- **Overview** — Summary statistics and usage charts
 - **Services** — API Registry management
 - **Team** — User directory (Admin and Manager only)
 - **Alerts** — Active warning and critical alerts (Admin and Manager only)
@@ -748,7 +628,7 @@ A live clock was displayed in the top-right area. The dashboard automatically re
 
 ## 6.3 Managing APIs
 
-> **📌 SCREENSHOT REQUIRED HERE — Figure 6.3:** Insert a screenshot of the Services tab showing the Register Service form.
+> **[INSERT SCREENSHOT — Figure 6.3: Register Service Form]**
 
 **To register a new API:**
 1. Navigate to the **Services** tab using the sidebar.
@@ -762,50 +642,51 @@ A live clock was displayed in the top-right area. The dashboard automatically re
 **To edit an existing API:**
 1. Locate the API in the Services table.
 2. Click the pencil (edit) icon on the right side of the row.
-3. Modify the desired fields in the Edit Service modal.
+3. Modify the desired fields in the Edit Service modal that appears.
 4. Click **Save Changes**.
 
 **To delete an API:**
-1. Click the red trash icon next to the API.
-2. Confirm the deletion when prompted.
-3. The API and all associated usage logs and alerts will be permanently removed.
+1. Click the red trash icon next to the API row.
+2. Confirm the deletion when prompted by the browser dialog.
+3. The API and all associated usage logs and alerts will be permanently removed from the database.
 
 ---
 
 ## 6.4 Managing Team Members
 
-1. Navigate to the **Team** tab.
+1. Navigate to the **Team** tab from the sidebar.
 2. To add a member, enter the full name and assign a role (Developer, Manager, or Admin) in the "Add Member" card, then click **Add Member**.
-3. To edit a member, click the pencil icon on their row and modify their name or role in the modal.
-4. To remove a member, click the red trash icon (Administrators cannot delete their own account to prevent lockout).
+3. To edit a member, click the pencil icon on their row and modify their name or role in the edit modal, then click **Save Changes**.
+4. To remove a member, click the red trash icon. Note that Administrators cannot delete their own account to prevent inadvertent lockout.
 
 ---
 
 ## 6.5 Handling Alerts
 
-> **📌 SCREENSHOT REQUIRED HERE — Figure 6.4:** Insert a screenshot showing the Alerts tab with at least one active alert and the Resolve button visible.
+> **[INSERT SCREENSHOT — Figure 6.4: Alert Resolution Flow]**
 
-1. Navigate to the **Alerts** tab.
+1. Navigate to the **Alerts** tab from the sidebar.
 2. Review the list of Warning (amber) and Critical (red) alerts.
-3. Each alert displays: severity type, the API that triggered it, the message, and the timestamp.
-4. To acknowledge and resolve an alert, click the **Resolve** button on the right of the alert row.
-5. The alert badge will change to green **Resolved** and be removed from the active queue.
+3. Each alert entry displays its severity type, the API that triggered it, the alert message, and the timestamp.
+4. To acknowledge and resolve an alert, click the **Resolve** button on the right side of the alert row.
+5. The alert badge will change to a green **Resolved** badge and the alert will be removed from the active unresolved queue.
 
 ---
 
 ## 6.6 Generating Reports
 
-> **📌 SCREENSHOT REQUIRED HERE — Figure 6.5:** Insert a screenshot showcasing the CSV download button in the Services or Alerts section.
+> **[INSERT SCREENSHOT — Figure 6.5: CSV Export Button]**
 
 CSV export was available in the following sections for Admin and Manager accounts:
+
 - **Services tab** — Exports the full API registry with all configuration fields.
 - **Alerts tab** — Exports all alert records including type, status, message, and timestamp.
 - **Audit Trail tab** — Exports the complete system event history.
 
-To export:
+**To export a report:**
 1. Navigate to the relevant section.
-2. Click the **CSV** download button (featuring a download icon) located in the section header.
-3. A `.csv` file will be automatically downloaded to the local computer's default downloads folder.
+2. Click the **CSV** download button (depicting a download icon) located in the section header bar.
+3. A `.csv` file will be automatically downloaded to the local computer's default downloads folder, ready for opening in Microsoft Excel or any spreadsheet application.
 
 ---
 
@@ -816,10 +697,14 @@ The Chaos Hub was an administrative tool for testing the system's resilience and
 1. Log in as an Administrator.
 2. Click the **Chaos** button (lightning bolt icon) in the top-right area of the topbar.
 3. The Chaos Simulation modal opens with three options:
-   - **Traffic Spike** — Injects a surge of simulated API calls across all services and degrades latency values system-wide. After execution, `check_and_generate_alerts()` runs automatically.
-   - **Service Outage** — Randomly selects one active API and forces it offline, generating a CRITICAL alert for that service.
-   - **Stabilize** — Restores all APIs to Online status, normalizes latency, and clears synthetic Chaos Outage alerts.
-4. Click the desired option. A toast notification at the bottom of the screen confirms the action.
+
+| Option | Action | System Effect |
+|:---|:---|:---|
+| Traffic Spike | Injects a surge of simulated API calls across all services | Degrades latency values system-wide; triggers `check_and_generate_alerts()` automatically |
+| Service Outage | Randomly selects one active API and forces it offline | Sets API status to "Offline"; inserts a Critical alert for the affected API |
+| Stabilize | Restores all APIs to Online status | Normalizes latency; clears synthetic Chaos Outage alerts while retaining legitimate warnings |
+
+4. Click the desired option. A toast notification at the bottom of the screen confirms the action was received.
 5. The dashboard refreshes automatically after 1.5 seconds to display the updated system state.
 
 ---
@@ -842,7 +727,7 @@ Python Software Foundation. (2024). *Python 3.10 documentation: hashlib — Secu
 
 Safaricom PLC. (2022). *Daraja API documentation: M-Pesa developer portal*. Retrieved from https://developer.safaricom.co.ke/
 
-Chartjs.org. (2024). *Chart.js documentation: Getting started*. Retrieved from https://www.chartjs.org/docs/latest/
+Chart.js Contributors. (2024). *Chart.js documentation: Getting started*. Retrieved from https://www.chartjs.org/docs/latest/
 
 GitHub, Inc. (2024). *GitHub documentation: Creating a repository*. Retrieved from https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-new-repository
 
@@ -852,10 +737,8 @@ GitHub, Inc. (2024). *GitHub documentation: Creating a repository*. Retrieved fr
 
 ## Appendix A: API Route Reference
 
-The following routes were implemented in `app.py`:
-
 | Method | Route | Role Required | Description |
-|---|---|---|---|
+|:---|:---|:---|:---|
 | GET/POST | `/login` | Public | User authentication page |
 | GET | `/logout` | Authenticated | Clear session and redirect to login |
 | GET | `/` | Authenticated | Main dashboard |
@@ -869,10 +752,10 @@ The following routes were implemented in `app.py`:
 | GET | `/resolve_alert/<id>` | Admin/Manager | Mark an alert as resolved |
 | GET | `/api/chart_data` | Authenticated | JSON data endpoint for Chart.js |
 | GET | `/api/audit_log` | Admin/Manager | JSON audit trail for async table load |
-| GET | `/export/apis` | Admin/Manager | Download API registry CSV |
-| GET | `/export/usage` | Admin/Manager | Download usage data CSV |
-| GET | `/export/alerts` | Admin/Manager | Download alerts CSV |
-| GET | `/export/audit` | Admin/Manager | Download audit trail CSV |
+| GET | `/export/apis` | Admin/Manager | Download API registry as CSV |
+| GET | `/export/usage` | Admin/Manager | Download usage data as CSV |
+| GET | `/export/alerts` | Admin/Manager | Download alerts as CSV |
+| GET | `/export/audit` | Admin/Manager | Download audit trail as CSV |
 | POST | `/simulate_chaos` | Admin | Trigger Chaos Hub events |
 
 ---
@@ -898,12 +781,11 @@ def init_db():
         latency_ms INTEGER DEFAULT 45,
         uptime_pct REAL DEFAULT 99.9
     )''')
-    # ... (additional tables created similarly)
     conn.commit()
     conn.close()
 ```
 
-**B.2 — Alert Engine**
+**B.2 — Automated Alert Engine**
 
 ```python
 def check_and_generate_alerts():
@@ -912,11 +794,15 @@ def check_and_generate_alerts():
     apis = conn.execute("SELECT * FROM apis").fetchall()
     for api in apis:
         total = conn.execute(
-            "SELECT COALESCE(SUM(usage_count), 0) as total FROM access_logs WHERE api_id = ?",
+            "SELECT COALESCE(SUM(usage_count), 0) as total "
+            "FROM access_logs WHERE api_id = ?",
             (api["id"],)
         ).fetchone()["total"]
         ratio = total / api["allowed_usage"] if api["allowed_usage"] > 0 else 0
-        conn.execute("DELETE FROM alerts WHERE api_id = ? AND type IN ('warning','critical')", (api["id"],))
+        conn.execute(
+            "DELETE FROM alerts WHERE api_id = ? AND type IN ('warning','critical')",
+            (api["id"],)
+        )
         if ratio >= 1.0:
             conn.execute(
                 "INSERT INTO alerts (type, api_id, status, message) VALUES (?,?,?,?)",
@@ -945,12 +831,13 @@ def login_required(f):
     return decorated_function
 ```
 
-**B.4 — Chaos Simulation Route (simplified)**
+**B.4 — Chaos Simulation Route**
 
 ```python
 @app.route("/simulate_chaos", methods=["POST"])
 @login_required
 def simulate_chaos():
+    """Trigger a simulated crisis (Chaos Simulation)."""
     if session.get("user_role") != "Admin":
         return jsonify({"success": False, "message": "Access Denied"}), 403
     chaos_type = request.json.get("type", "spike")
@@ -958,15 +845,25 @@ def simulate_chaos():
     if chaos_type == "outage":
         apis = conn.execute("SELECT id, name FROM apis").fetchall()
         target = random.choice(apis)
-        conn.execute("UPDATE apis SET status='Offline', latency_ms=0 WHERE id=?", (target['id'],))
-        conn.execute("INSERT INTO alerts (type, api_id, status, message) VALUES (?,?,?,?)",
-                     ("critical", target['id'], "new", f"CHAOS OUTAGE: {target['name']} went offline!"))
+        conn.execute(
+            "UPDATE apis SET status='Offline', latency_ms=0 WHERE id=?",
+            (target['id'],)
+        )
+        conn.execute(
+            "INSERT INTO alerts (type, api_id, status, message) VALUES (?,?,?,?)",
+            ("critical", target['id'], "new",
+             f"CHAOS OUTAGE: {target['name']} went offline!")
+        )
+        msg = f"Simulated outage triggered on {target['name']}."
     elif chaos_type == "spike":
         conn.execute("UPDATE apis SET status='Degraded', latency_ms=latency_ms * 5")
-        # ... inject fake traffic logs
+        msg = "Simulation: Worldwide traffic spike in progress. Latency high."
     else:
-        conn.execute("UPDATE apis SET status='Online', latency_ms = ABS(RANDOM() % 100) + 10")
+        conn.execute(
+            "UPDATE apis SET status='Online', latency_ms = ABS(RANDOM() % 100) + 10"
+        )
         conn.execute("DELETE FROM alerts WHERE message LIKE 'CHAOS OUTAGE:%'")
+        msg = "Systems stabilized. Chaos simulated cleared."
     conn.commit()
     conn.close()
     if chaos_type == "spike":
@@ -976,7 +873,7 @@ def simulate_chaos():
 
 ---
 
-## Appendix C: Requirements.txt
+## Appendix C: requirements.txt
 
 ```
 Flask==3.0.0
